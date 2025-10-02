@@ -1,0 +1,3 @@
+[submodule "ESP32_App_Manager/lib/sMQTTBroker"]
+	path = ESP32_App_Manager/lib/sMQTTBroker
+	url = https://github.com/terrorsl/sMQTTBroker.git
