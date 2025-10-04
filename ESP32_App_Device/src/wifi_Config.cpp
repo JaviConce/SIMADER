@@ -1,14 +1,7 @@
 #include "wifi_Config.hpp"
-void onWiFiConnected(WiFiEvent_t event, WiFiEventInfo_t info) {
-    Serial.println("[WIFI_CONFIG][INFO] Connected to the Access Point.");
-    Serial.printf("[WIFI_CONFIG][INFO] Local IP: %s\n", WiFi.localIP().toString().c_str());
-}
 
 int startWIFI_CONFIG() {
     WiFi.mode(WIFI_STA);
-
-    WiFi.onEvent(onWiFiConnected, ARDUINO_EVENT_WIFI_STA_CONNECTED);
-
     Serial.printf("[WIFI_CONFIG][INFO] Connecting to SSID: %s.", ssid.c_str());
     WiFi.begin(ssid.c_str(), password.c_str());
     int tries = 0;

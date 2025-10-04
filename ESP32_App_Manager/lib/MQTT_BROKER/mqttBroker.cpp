@@ -33,10 +33,14 @@ bool MQTTBroker::onEvent(sMQTTEvent *event) {
         WiFi.reconnect();
         break;
     case Subscribe_sMQTTEventType:
-        Serial.println("[MQTTBroker][INFO] Client subscribed to a topic");
+        {
+        sMQTTSubUnSubClientEvent *e = (sMQTTSubUnSubClientEvent*)event;
+        sMQTTClient *client = e->Client();
+        std::string topic = e->Topic();
+        Serial.printf("[MQTTBroker][INFO] Client: %s subscribed a topic %s\n",client->getClientId().c_str(),topic.c_str());
         break;
-    
-        
+        }
+
     case UnSubscribe_sMQTTEventType:
         Serial.println("[MQTTBroker][INFO] Client unsubscribed from a topic");
         break;
