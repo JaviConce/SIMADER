@@ -16,7 +16,10 @@ void setup() {
     initMQTT_Server();
     xTaskCreate(taskMQTTBrokerClientManager, "MQTTBrokerClientManager", 4096, NULL, 3, NULL);
     connectBroker(WiFi.softAPIP().toString().c_str());
+    initWebServer();
 }
 
 void loop() {
+    handleWebServer();
+    handleMQTTClient();
 }

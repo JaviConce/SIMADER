@@ -23,9 +23,29 @@ bool MQTTBroker::onEvent(sMQTTEvent *event) {
         sMQTTNewClientEvent *e = (sMQTTNewClientEvent*)event;
         sMQTTClient *client = e->Client();
         std::string clientId = client->getClientId();
+        IPAddress clientIP = client->getClientIP();
 
-        Serial.print("[MQTTBroker][INFO] New client connected with ID: ");
-        Serial.println(clientId.c_str());
+        ClientInfo info;
+        info.clientId = clientId;
+        info.ipAddress = clientIP.toString().c_str();
+        info.connected = true;
+        info.connectedTime = millis();
+        connectedClients[clientId] = info;
+
+        Serial.printf("[MQTTBroker][INFO] New client connected with ID: %s from IP: %s\n",
+                      clientId.c_str(), info.ipAddress.c_str());
+        }
+        break;
+    case RemoveClient_sMQTTEventType:
+        {
+        sMQTTRemoveClientEvent *e = (sMQTTRemoveClientEvent*)event;
+        sMQTTClient *client = e->Client();
+
+        if(connectedClients.find(client->getClientId().c_str()) != connectedClients.end()) {
+            connectedClients.erase(client->getClientId().c_str());
+        }
+
+        Serial.printf("[MQTTBroker][INFO] Client disconnected with ID: %s\n",client->getClientId().c_str());
         }
         break;
     case LostConnect_sMQTTEventType:
@@ -46,4 +66,12 @@ bool MQTTBroker::onEvent(sMQTTEvent *event) {
         break;
     }
     return true;
+}
+
+std::vector<ClientInfo> MQTTBroker::getConnectedClients() {
+    std::vector<ClientInfo> result;
+    for(auto const& pair : connectedClients) {
+        result.push_back(pair.second);
+    }
+    return result;
 }

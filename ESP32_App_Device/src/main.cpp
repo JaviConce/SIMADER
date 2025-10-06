@@ -11,8 +11,11 @@ void setup() {
     return;
   }
   Serial.println("[MAIN][INFO] WiFi connected successfully.");
-  connectToMQTTBroker(WiFi.softAPIP().toString().c_str(), 1883);
+  Serial.printf("[MAIN][INFO] Local IP: %s\n", WiFi.localIP().toString().c_str());
+  connectToMQTTBroker(WiFi.gatewayIP().toString().c_str(), 1883);
 }
 
 void loop() {
+  mqttLoop();
+  delay(10); // Pequeño delay para no saturar el CPU
 }
