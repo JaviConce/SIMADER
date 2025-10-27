@@ -1,8 +1,14 @@
 
 #include "mqtt_Manager.hpp"
+#include "led_Manager.hpp"
+
+extern LedManager ledManager;
 
 WiFiClient espWifi;
 PubSubClient mqttClient(espWifi);
+
+MqttManager::MqttManager() {
+}
 
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
     std::string msg;
@@ -25,7 +31,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
                     response = myIP + ":EMG_Data_Value_";
                     Serial.printf("[MQTT_MANAGER][RESPONSE] Sending data response: %s\n", response.c_str());
                 } else if(command == "Check") {
-                    //TODO: Immplement led blink or similar to indicate command received
+                    ledManager.blinkNeoPixel(ORANGE_COLOR, 3, 200);
                     response = myIP + ":OK";
                     Serial.printf("[MQTT_MANAGER][RESPONSE] Sending check response: %s\n", response.c_str());
                 } else {
@@ -39,7 +45,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     }
 }
 
-int connectToMQTTBroker(std::string mqttServer, int mqttPort = 1883) {
+int MqttManager::connectToMQTTBroker(std::string mqttServer, int mqttPort = 1883) {
     mqttClient.setServer(mqttServer.c_str(), mqttPort);
     mqttClient.setCallback(mqttCallback);
 
@@ -61,6 +67,6 @@ int connectToMQTTBroker(std::string mqttServer, int mqttPort = 1883) {
     return 0;
 }
 
-void mqttLoop() {
+void MqttManager::mqttLoop() {
     mqttClient.loop();
 }

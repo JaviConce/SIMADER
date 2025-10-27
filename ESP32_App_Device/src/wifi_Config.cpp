@@ -1,6 +1,9 @@
 #include "wifi_Config.hpp"
 
-int startWIFI_CONFIG() {
+WifiConfig::WifiConfig() {
+}
+
+int WifiConfig::startWIFI_CONFIG() {
     WiFi.mode(WIFI_STA);
     Serial.printf("[WIFI_CONFIG][INFO] Connecting to SSID: %s.", ssid.c_str());
     WiFi.begin(ssid.c_str(), password.c_str());
