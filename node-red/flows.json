@@ -1,0 +1,639 @@
+[
+    {
+        "id": "flow_receiver",
+        "type": "tab",
+        "label": "1. MQTT Receiver",
+        "disabled": false,
+        "info": "Recibe y almacena datos de dispositivos MQTT",
+        "env": []
+    },
+    {
+        "id": "flow_dashboard",
+        "type": "tab",
+        "label": "2. Dashboard",
+        "disabled": false,
+        "info": "Panel de control visual",
+        "env": []
+    },
+    {
+        "id": "flow_commands",
+        "type": "tab",
+        "label": "3. Command Control",
+        "disabled": false,
+        "info": "Envía comandos a dispositivos",
+        "env": []
+    },
+    {
+        "id": "mqtt_broker_main",
+        "type": "mqtt-broker",
+        "name": "ESP32 Manager",
+        "broker": "127.0.0.1",
+        "port": "1883",
+        "clientid": "nodered-client",
+        "usetls": false,
+        "compatmode": false,
+        "keepalive": 30,
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": ""
+    },
+    {
+        "id": "dashboard_tab",
+        "type": "ui_tab",
+        "name": "Inicio",
+        "icon": "home",
+        "order": 1,
+        "disabled": false
+    },
+    {
+        "id": "capture_tab",
+        "type": "ui_tab",
+        "name": "Captura",
+        "icon": "photo_camera",
+        "order": 2,
+        "disabled": false
+    },
+    {
+        "id": "history_tab",
+        "type": "ui_tab",
+        "name": "Registrar",
+        "icon": "history",
+        "order": 3,
+        "disabled": false
+    },
+    {
+        "id": "config_tab",
+        "type": "ui_tab",
+        "name": "Configuración",
+        "icon": "settings",
+        "order": 4,
+        "disabled": false
+    },
+    {
+        "id": "clients_group",
+        "type": "ui_group",
+        "name": "Clients",
+        "tab": "dashboard_tab",
+        "order": 1,
+        "disp": true,
+        "width": 6,
+        "collapse": false
+    },
+    {
+        "id": "status_group",
+        "type": "ui_group",
+        "name": "Live Status",
+        "tab": "dashboard_tab",
+        "order": 2,
+        "disp": true,
+        "width": 6,
+        "collapse": false
+    },
+    {
+        "id": "command_group",
+        "type": "ui_group",
+        "name": "Commands",
+        "tab": "dashboard_tab",
+        "order": 3,
+        "disp": true,
+        "width": 6,
+        "collapse": false
+    },
+    {
+        "id": "3c6182b3470da2e0",
+        "type": "ui_base",
+        "theme": {
+            "name": "theme-light",
+            "lightTheme": {
+                "default": "#0094CE",
+                "baseColor": "#0094CE",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
+                "edited": true,
+                "reset": false
+            },
+            "darkTheme": {
+                "default": "#097479",
+                "baseColor": "#097479",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
+                "edited": false
+            },
+            "customTheme": {
+                "name": "Untitled Theme 1",
+                "default": "#4B7930",
+                "baseColor": "#4B7930",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif"
+            },
+            "themeState": {
+                "base-color": {
+                    "default": "#0094CE",
+                    "value": "#0094CE",
+                    "edited": false
+                },
+                "page-titlebar-backgroundColor": {
+                    "value": "#0094CE",
+                    "edited": false
+                },
+                "page-backgroundColor": {
+                    "value": "#fafafa",
+                    "edited": false
+                },
+                "page-sidebar-backgroundColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "group-textColor": {
+                    "value": "#1bbfff",
+                    "edited": false
+                },
+                "group-borderColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "group-backgroundColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "widget-textColor": {
+                    "value": "#111111",
+                    "edited": false
+                },
+                "widget-backgroundColor": {
+                    "value": "#0094ce",
+                    "edited": false
+                },
+                "widget-borderColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "base-font": {
+                    "value": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif"
+                }
+            },
+            "angularTheme": {
+                "primary": "indigo",
+                "accents": "blue",
+                "warn": "red",
+                "background": "grey",
+                "palette": "light"
+            }
+        },
+        "site": {
+            "name": "Node-RED Dashboard",
+            "hideToolbar": "false",
+            "allowSwipe": "false",
+            "lockMenu": "false",
+            "allowTempTheme": "true",
+            "dateFormat": "DD/MM/YYYY",
+            "sizes": {
+                "sx": 48,
+                "sy": 48,
+                "gx": 6,
+                "gy": 6,
+                "cx": 6,
+                "cy": 6,
+                "px": 0,
+                "py": 0
+            }
+        }
+    },
+    {
+        "id": "capture_group",
+        "type": "ui_group",
+        "name": "Captura de Datos",
+        "tab": "capture_tab",
+        "order": 1,
+        "disp": true,
+        "width": 12,
+        "collapse": false
+    },
+    {
+        "id": "history_group",
+        "type": "ui_group",
+        "name": "Historial de Datos",
+        "tab": "history_tab",
+        "order": 1,
+        "disp": true,
+        "width": 12,
+        "collapse": false
+    },
+    {
+        "id": "config_group",
+        "type": "ui_group",
+        "name": "Gestión de Personas",
+        "tab": "config_tab",
+        "order": 1,
+        "disp": true,
+        "width": 6,
+        "collapse": false
+    },
+    {
+        "id": "persons_group",
+        "type": "ui_group",
+        "name": "Lista de Personas",
+        "tab": "config_tab",
+        "order": 2,
+        "disp": true,
+        "width": 6,
+        "collapse": false
+    },
+    {
+        "id": "data_group",
+        "type": "ui_group",
+        "name": "Datos de Personas",
+        "tab": "config_tab",
+        "order": 3,
+        "disp": true,
+        "width": 12,
+        "collapse": false
+    },
+    {
+        "id": "mqtt_in_all",
+        "type": "mqtt in",
+        "z": "flow_receiver",
+        "name": "Subscribe to esp32/#",
+        "topic": "esp32/#",
+        "qos": "2",
+        "datatype": "auto",
+        "broker": "mqtt_broker_main",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 200,
+        "y": 100,
+        "wires": [
+            [
+                "parse_mqtt",
+                "debug_raw"
+            ]
+        ]
+    },
+    {
+        "id": "debug_raw",
+        "type": "debug",
+        "z": "flow_receiver",
+        "name": "Raw MQTT",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 500,
+        "y": 60,
+        "wires": []
+    },
+    {
+        "id": "parse_mqtt",
+        "type": "function",
+        "z": "flow_receiver",
+        "name": "Parse & Store",
+        "func": "let payload = msg.payload;\nif(typeof payload === 'string') {\n    try {\n        payload = JSON.parse(payload);\n    } catch(e) {}\n}\n\nconst msgData = {\n    topic: msg.topic,\n    payload: payload,\n    timestamp: new Date().toISOString(),\n    date: new Date(),\n    receivedAt: Date.now()\n};\n\ncontext.set('lastMessage_' + msg.topic, msgData);\n\nlet history = context.get('history_' + msg.topic) || [];\nhistory.push(msgData);\nif(history.length > 200) {\n    history = history.slice(-200);\n}\ncontext.set('history_' + msg.topic, history);\n\nmsg.payload = msgData;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 500,
+        "y": 120,
+        "wires": [
+            [
+                "to_dashboard"
+            ]
+        ]
+    },
+    {
+        "id": "to_dashboard",
+        "type": "link out",
+        "z": "flow_receiver",
+        "name": "To Dashboard",
+        "links": [
+            "from_receiver"
+        ],
+        "x": 500,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "from_receiver",
+        "type": "link in",
+        "z": "flow_dashboard",
+        "name": "From Receiver",
+        "links": [
+            "to_dashboard"
+        ],
+        "x": 50,
+        "y": 320,
+        "wires": [
+            [
+                "update_dashboard"
+            ]
+        ]
+    },
+    {
+        "id": "poll_clients",
+        "type": "inject",
+        "z": "flow_dashboard",
+        "name": "Poll Every 5s",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "5",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "0.5",
+        "topic": "",
+        "payload": "{}",
+        "payloadType": "json",
+        "x": 150,
+        "y": 100,
+        "wires": [
+            [
+                "get_clients_http"
+            ]
+        ]
+    },
+    {
+        "id": "get_clients_http",
+        "type": "http request",
+        "z": "flow_dashboard",
+        "name": "GET /api/clients",
+        "method": "GET",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "http://192.168.4.1:80/api/clients",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "x": 330,
+        "y": 100,
+        "wires": [
+            [
+                "process_clients_data"
+            ]
+        ]
+    },
+    {
+        "id": "process_clients_data",
+        "type": "function",
+        "z": "flow_dashboard",
+        "name": "Process Clients",
+        "func": "let clients = [];\n\nif(msg.payload && msg.payload.clients) {\n    clients = msg.payload.clients.map(c => ({\n        clientId: c.id || 'unknown',\n        ip: c.ip || 'unknown',\n        connectedTime: c.uptime || 0,\n        connected: c.connected !== false\n    }));\n} else if(Array.isArray(msg.payload)) {\n    clients = msg.payload;\n}\n\ncontext.set('connectedClients', clients);\n\nmsg.payload = {\n    totalClients: clients.length,\n    clients: clients,\n    timestamp: new Date().toISOString(),\n    lastUpdate: new Date()\n};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 520,
+        "y": 100,
+        "wires": [
+            [
+                "display_clients_text",
+                "debug_clients"
+            ]
+        ]
+    },
+    {
+        "id": "debug_clients",
+        "type": "debug",
+        "z": "flow_dashboard",
+        "name": "Clients Debug",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 700,
+        "y": 60,
+        "wires": []
+    },
+    {
+        "id": "display_clients_text",
+        "type": "ui_template",
+        "z": "flow_dashboard",
+        "group": "clients_group",
+        "name": "Connected Clients",
+        "order": 1,
+        "format": "<div style=\"padding: 15px; font-family: Arial, sans-serif;\">\n    <h3 style=\"margin-top: 0; color: #333;\">🔌 Dispositivos Conectados</h3>\n    <div style=\"background: #f0f0f0; padding: 10px; border-radius: 5px; margin-bottom: 15px;\">\n        <p style=\"margin: 5px 0; font-size: 18px; font-weight: bold; color: #2196F3;\">\n            Total: <span style=\"color: #00AA00;\">{{msg.payload.totalClients}}</span>\n        </p>\n        <p style=\"margin: 5px 0; font-size: 12px; color: #666;\">\n            Última actualización: {{msg.payload.lastUpdate | date:'HH:mm:ss'}}\n        </p>\n    </div>\n    \n    <div ng-if=\"msg.payload.totalClients === 0\" style=\"text-align: center; color: #999; padding: 20px;\">\n        <p>No hay dispositivos conectados</p>\n    </div>\n    \n    <table ng-if=\"msg.payload.totalClients > 0\" style=\"width:100%; border-collapse: collapse; font-size: 12px;\">\n        <tr style=\"background-color: #2196F3; color: white;\">\n            <th style=\"padding: 10px; text-align: left; border: 1px solid #ddd;\">Client ID</th>\n            <th style=\"padding: 10px; text-align: left; border: 1px solid #ddd;\">IP Address</th>\n            <th style=\"padding: 10px; text-align: left; border: 1px solid #ddd;\">Tiempo (s)</th>\n        </tr>\n        <tr ng-repeat=\"client in msg.payload.clients\" style=\"background-color: {{$index % 2 == 0 ? '#ffffff' : '#f9f9f9'}}; border-bottom: 1px solid #ddd;\">\n            <td style=\"padding: 10px; border: 1px solid #ddd;\">{{client.clientId}}</td>\n            <td style=\"padding: 10px; border: 1px solid #ddd;\">{{client.ip}}</td>\n            <td style=\"padding: 10px; border: 1px solid #ddd;\">{{client.connectedTime}}</td>\n        </tr>\n    </table>\n</div>",
+        "x": 710,
+        "y": 140,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "update_dashboard",
+        "type": "ui_template",
+        "z": "flow_dashboard",
+        "group": "status_group",
+        "name": "Live Data",
+        "order": 2,
+        "format": "<div style=\"padding: 15px; font-family: Arial, sans-serif;\">\n    <h3 style=\"margin-top: 0; color: #333;\">📊 Últimos Datos Recibidos</h3>\n    <div style=\"background: #f5f5f5; padding: 10px; border-radius: 5px; border-left: 4px solid #FF9800;\">\n        <p style=\"margin: 5px 0;\"><strong>Tópico:</strong> {{msg.payload.topic}}</p>\n        <p style=\"margin: 5px 0;\"><strong>Payload:</strong> <code>{{msg.payload.payload | json}}</code></p>\n        <p style=\"margin: 5px 0;\"><strong>Timestamp:</strong> {{msg.payload.timestamp}}</p>\n    </div>\n</div>",
+        "x": 250,
+        "y": 320,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "capture_widget",
+        "type": "ui_template",
+        "z": "flow_dashboard",
+        "group": "capture_group",
+        "name": "Control de Captura",
+        "order": 1,
+        "format": "<div style=\"padding: 20px; font-family: Arial, sans-serif;\">\n    <h2 style=\"color: #333;\">📸 Captura de Datos</h2>\n    <p style=\"color: #666;\">Aquí puedes capturar y grabar datos en tiempo real de los dispositivos ESP32</p>\n    \n    <div style=\"margin-top: 20px;\">\n        <button style=\"padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;\" onclick=\"alert('Función de captura habilitada')\">▶️ Iniciar Captura</button>\n        <button style=\"padding: 10px 20px; background-color: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; margin-left: 10px;\" onclick=\"alert('Captura detenida')\">⏹️ Detener Captura</button>\n    </div>\n    \n    <div style=\"margin-top: 20px; padding: 15px; background-color: #f5f5f5; border-radius: 5px;\">\n        <h3 style=\"color: #333;\">Estado de Captura</h3>\n        <p><strong>Estado:</strong> <span style=\"color: #2196F3;\">Listo</span></p>\n        <p><strong>Dispositivos monitoreados:</strong> <span style=\"color: #2196F3;\">0</span></p>\n        <p><strong>Registros capturados:</strong> <span style=\"color: #2196F3;\">0</span></p>\n    </div>\n</div>",
+        "x": 100,
+        "y": 400,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "history_widget",
+        "type": "ui_template",
+        "z": "flow_dashboard",
+        "group": "history_group",
+        "name": "Registro Histórico",
+        "order": 1,
+        "format": "<div style=\"padding: 20px; font-family: Arial, sans-serif;\">\n    <h2 style=\"color: #333;\">📊 Registrar Datos Históricos</h2>\n    <p style=\"color: #666;\">Visualiza y analiza el historial de datos capturados</p>\n    \n    <div style=\"margin-top: 20px;\">\n        <button style=\"padding: 10px 20px; background-color: #2196F3; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;\" onclick=\"alert('Exportando datos...')\">📥 Exportar CSV</button>\n        <button style=\"padding: 10px 20px; background-color: #FF9800; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; margin-left: 10px;\" onclick=\"alert('Datos descargados')\">💾 Descargar JSON</button>\n        <button style=\"padding: 10px 20px; background-color: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; margin-left: 10px;\" onclick=\"alert('Datos eliminados')\">🗑️ Limpiar Historial</button>\n    </div>\n    \n    <div style=\"margin-top: 20px; padding: 15px; background-color: #f5f5f5; border-radius: 5px;\">\n        <h3 style=\"color: #333;\">Información del Historial</h3>\n        <table style=\"width: 100%; border-collapse: collapse;\">\n            <tr style=\"background-color: #e0e0e0;\">\n                <th style=\"padding: 10px; text-align: left; border: 1px solid #ddd;\">Parámetro</th>\n                <th style=\"padding: 10px; text-align: left; border: 1px solid #ddd;\">Valor</th>\n            </tr>\n            <tr>\n                <td style=\"padding: 10px; border: 1px solid #ddd;\"><strong>Total de registros</strong></td>\n                <td style=\"padding: 10px; border: 1px solid #ddd;\"><span style=\"color: #2196F3;\">0</span></td>\n            </tr>\n            <tr style=\"background-color: #f9f9f9;\">\n                <td style=\"padding: 10px; border: 1px solid #ddd;\"><strong>Período cubierto</strong></td>\n                <td style=\"padding: 10px; border: 1px solid #ddd;\"><span style=\"color: #2196F3;\">N/A</span></td>\n            </tr>\n            <tr>\n                <td style=\"padding: 10px; border: 1px solid #ddd;\"><strong>Último registro</strong></td>\n                <td style=\"padding: 10px; border: 1px solid #ddd;\"><span style=\"color: #2196F3;\">N/A</span></td>\n            </tr>\n        </table>\n    </div>\n</div>",
+        "x": 100,
+        "y": 450,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "config_widget",
+        "type": "ui_template",
+        "z": "flow_dashboard",
+        "group": "config_group",
+        "name": "Agregar Persona",
+        "order": 1,
+        "format": "<div style=\"padding: 20px; font-family: Arial, sans-serif;\">\n    <h2 style=\"color: #333;\">👥 Agregar Nueva Persona</h2>\n    <p style=\"color: #666;\">Registra una nueva persona (próximamente en base de datos)</p>\n    \n    <div style=\"margin-top: 20px; padding: 20px; background-color: #f5f5f5; border-radius: 5px;\">\n        <div style=\"margin-bottom: 15px;\">\n            <label style=\"display: block; margin-bottom: 5px; font-weight: bold; color: #333;\">Nombre Completo:</label>\n            <input type=\"text\" id=\"nombre\" placeholder=\"Ej: Juan Pérez\" style=\"width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box;\">\n        </div>\n        \n        <div style=\"margin-bottom: 15px;\">\n            <label style=\"display: block; margin-bottom: 5px; font-weight: bold; color: #333;\">Email:</label>\n            <input type=\"email\" id=\"email\" placeholder=\"Ej: juan@example.com\" style=\"width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box;\">\n        </div>\n        \n        <div style=\"margin-bottom: 15px;\">\n            <label style=\"display: block; margin-bottom: 5px; font-weight: bold; color: #333;\">Teléfono:</label>\n            <input type=\"tel\" id=\"telefono\" placeholder=\"Ej: +34 612345678\" style=\"width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box;\">\n        </div>\n        \n        <div style=\"margin-bottom: 15px;\">\n            <label style=\"display: block; margin-bottom: 5px; font-weight: bold; color: #333;\">Descripción:</label>\n            <textarea id=\"descripcion\" placeholder=\"Descripción opcional\" style=\"width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; height: 80px; resize: vertical;\"></textarea>\n        </div>\n        \n        <button style=\"padding: 12px 24px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: bold; width: 100%;\" onclick=\"guardarPersona()\">➕ Agregar Persona</button>\n        <div id=\"mensaje\" style=\"margin-top: 10px; padding: 10px; border-radius: 5px; display: none;\"></div>\n    </div>\n</div>\n\n<script>\nfunction guardarPersona() {\n    const nombre = document.getElementById('nombre').value;\n    const email = document.getElementById('email').value;\n    const telefono = document.getElementById('telefono').value;\n    const descripcion = document.getElementById('descripcion').value;\n    const mensajeDiv = document.getElementById('mensaje');\n    \n    if (!nombre.trim()) {\n        mensajeDiv.style.backgroundColor = '#ffcdd2';\n        mensajeDiv.style.color = '#c62828';\n        mensajeDiv.textContent = '❌ El nombre es requerido';\n        mensajeDiv.style.display = 'block';\n        return;\n    }\n    \n    const datos = {\n        nombre: nombre.trim(),\n        email: email.trim() || null,\n        telefono: telefono.trim() || null,\n        descripcion: descripcion.trim() || null\n    };\n    \n    // Guardar en localStorage por ahora\n    let personas = JSON.parse(localStorage.getItem('personas')) || [];\n    datos.id = Math.max(...personas.map(p => p.id || 0), 0) + 1;\n    datos.fecha_creacion = new Date().toISOString();\n    personas.push(datos);\n    localStorage.setItem('personas', JSON.stringify(personas));\n    \n    mensajeDiv.style.backgroundColor = '#c8e6c9';\n    mensajeDiv.style.color = '#2e7d32';\n    mensajeDiv.textContent = '✅ Persona agregada exitosamente';\n    document.getElementById('nombre').value = '';\n    document.getElementById('email').value = '';\n    document.getElementById('telefono').value = '';\n    document.getElementById('descripcion').value = '';\n    \n    mensajeDiv.style.display = 'block';\n    setTimeout(() => { location.reload(); }, 1500);\n}\n</script>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": false,
+        "templateScope": "local",
+        "className": "",
+        "x": 100,
+        "y": 500,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "persons_widget",
+        "type": "ui_template",
+        "z": "flow_dashboard",
+        "group": "persons_group",
+        "name": "Tabla de Personas",
+        "order": 1,
+        "format": "<div style=\"padding: 10px; font-family: Arial, sans-serif; display: flex; flex-direction: column; height: 100%;\">\n    <h2 style=\"color: #333; margin: 0 0 10px 0;\">📋 Personas Registradas</h2>\n    <p style=\"color: #666; margin: 0 0 15px 0;\">Total: <span style=\"color: #2196F3; font-weight: bold;\" id=\"totalPersonas\">0</span> personas</p>\n    \n    <div style=\"flex: 1; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 15px;\">\n        <table style=\"width: 100%; border-collapse: collapse; font-size: 13px;\">\n            <thead style=\"position: sticky; top: 0;\">\n                <tr style=\"background-color: #2196F3; color: white;\">\n                    <th style=\"padding: 12px; text-align: left; border: 1px solid #ddd; white-space: nowrap;\">ID</th>\n                    <th style=\"padding: 12px; text-align: left; border: 1px solid #ddd; min-width: 150px;\">Nombre</th>\n                    <th style=\"padding: 12px; text-align: left; border: 1px solid #ddd; min-width: 180px;\">Email</th>\n                    <th style=\"padding: 12px; text-align: left; border: 1px solid #ddd; min-width: 130px;\">Teléfono</th>\n                    <th style=\"padding: 12px; text-align: center; border: 1px solid #ddd; white-space: nowrap;\">Acciones</th>\n                </tr>\n            </thead>\n            <tbody id=\"personasTableBody\">\n                <tr style=\"background-color: #f5f5f5;\">\n                    <td colspan=\"5\" style=\"padding: 30px; text-align: center; color: #999;\">No hay personas registradas</td>\n                </tr>\n            </tbody>\n        </table>\n    </div>\n    \n    <div style=\"display: flex; gap: 10px;\">\n        <button style=\"padding: 10px 20px; background-color: #2196F3; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 13px; flex: 1;\" onclick=\"cargarPersonas()\">🔄 Actualizar</button>\n        <button style=\"padding: 10px 20px; background-color: #FF9800; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 13px; flex: 1;\" onclick=\"alert('Exportando a CSV...')\">📥 Exportar</button>\n    </div>\n</div>\n\n<script>\nfunction cargarPersonas() {\n    const personas = JSON.parse(localStorage.getItem('personas')) || [];\n    const tbody = document.getElementById('personasTableBody');\n    const totalEl = document.getElementById('totalPersonas');\n    \n    if (personas.length === 0) {\n        tbody.innerHTML = '<tr style=\"background-color: #f5f5f5;\"><td colspan=\"5\" style=\"padding: 30px; text-align: center; color: #999;\">No hay personas registradas</td></tr>';\n        totalEl.textContent = '0';\n        return;\n    }\n    \n    let html = '';\n    personas.forEach((persona, idx) => {\n        html += `<tr style=\"background-color: ${idx % 2 == 0 ? '#ffffff' : '#f9f9f9'};\">\n            <td style=\"padding: 10px; border: 1px solid #ddd;\">${persona.id}</td>\n            <td style=\"padding: 10px; border: 1px solid #ddd;\">${persona.nombre || 'N/A'}</td>\n            <td style=\"padding: 10px; border: 1px solid #ddd;\">${persona.email || 'N/A'}</td>\n            <td style=\"padding: 10px; border: 1px solid #ddd;\">${persona.telefono || 'N/A'}</td>\n            <td style=\"padding: 10px; text-align: center; border: 1px solid #ddd;\">\n                <button class=\"btn-small btn-delete\" onclick=\"eliminarPersona(${persona.id})\">🗑️</button>\n            </td>\n        </tr>`;\n    });\n    \n    tbody.innerHTML = html;\n    totalEl.textContent = personas.length;\n}\n\nfunction eliminarPersona(id) {\n    if (confirm('¿Estás seguro de que deseas eliminar esta persona?')) {\n        let personas = JSON.parse(localStorage.getItem('personas')) || [];\n        personas = personas.filter(p => p.id !== id);\n        localStorage.setItem('personas', JSON.stringify(personas));\n        cargarPersonas();\n    }\n}\n\nsetTimeout(cargarPersonas, 100);\n</script>\n\n<style>\n    table tbody tr:hover {\n        background-color: #e3f2fd;\n    }\n    \n    .btn-small {\n        padding: 5px 10px;\n        margin: 0 3px;\n        border: none;\n        border-radius: 3px;\n        cursor: pointer;\n        font-size: 11px;\n        color: white;\n        background-color: #f44336;\n    }\n    \n    .btn-small:hover {\n        opacity: 0.8;\n    }\n</style>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": false,
+        "templateScope": "local",
+        "className": "",
+        "x": 100,
+        "y": 550,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "data_widget",
+        "type": "ui_template",
+        "z": "flow_dashboard",
+        "group": "data_group",
+        "name": "Historial de Datos por Persona",
+        "order": 1,
+        "format": "<div style=\"padding: 10px; font-family: Arial, sans-serif; display: flex; flex-direction: column; height: 100%;\">\n    <h2 style=\"color: #333; margin: 0 0 10px 0;\">📊 Datos Asociados a Personas</h2>\n    <p style=\"color: #666; margin: 0 0 15px 0;\">Se implementará con MySQL próximamente</p>\n    \n    <div style=\"flex: 1; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 15px; background-color: #f9f9f9; display: flex; align-items: center; justify-content: center;\">\n        <div style=\"text-align: center; color: #999; padding: 40px;\">\n            <h3>⏳ Próximamente</h3>\n            <p>Los datos de personas se implementarán cuando conectes MySQL</p>\n        </div>\n    </div>\n</div>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": false,
+        "templateScope": "local",
+        "className": "",
+        "x": 100,
+        "y": 600,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "inject_test_command",
+        "type": "inject",
+        "z": "flow_commands",
+        "name": "Test: Send CheckStatus",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{\"ip\":\"192.168.4.100\",\"command\":\"Check\"}",
+        "payloadType": "json",
+        "x": 150,
+        "y": 100,
+        "wires": [
+            [
+                "build_command_url"
+            ]
+        ]
+    },
+    {
+        "id": "build_command_url",
+        "type": "function",
+        "z": "flow_commands",
+        "name": "Build URL",
+        "func": "const ip = msg.payload.ip || \"192.168.4.100\";\nconst cmd = msg.payload.command || \"Check\";\n\nmsg.url = `http://192.168.4.1/send?ip=${ip}&cmd=${cmd}`;\nmsg.payload = {\n    ip: ip,\n    command: cmd,\n    url: msg.url,\n    timestamp: new Date().toISOString()\n};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 350,
+        "y": 100,
+        "wires": [
+            [
+                "send_command"
+            ]
+        ]
+    },
+    {
+        "id": "send_command",
+        "type": "http request",
+        "z": "flow_commands",
+        "name": "HTTP GET Send",
+        "method": "GET",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "{{{url}}}",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "x": 520,
+        "y": 100,
+        "wires": [
+            [
+                "handle_response"
+            ]
+        ]
+    },
+    {
+        "id": "handle_response",
+        "type": "function",
+        "z": "flow_commands",
+        "name": "Handle Response",
+        "func": "const response = {\n    status: msg.statusCode === 200 ? 'SUCCESS' : 'ERROR',\n    statusCode: msg.statusCode,\n    response: msg.payload,\n    timestamp: new Date().toISOString()\n};\n\nmsg.payload = response;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 680,
+        "y": 100,
+        "wires": [
+            [
+                "debug_response",
+                "command_status_ui"
+            ]
+        ]
+    },
+    {
+        "id": "debug_response",
+        "type": "debug",
+        "z": "flow_commands",
+        "name": "Response Debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 850,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "command_status_ui",
+        "type": "ui_template",
+        "z": "flow_commands",
+        "group": "command_group",
+        "name": "Command Status",
+        "order": 1,
+        "format": "<div style=\"padding: 15px; font-family: Arial, sans-serif;\">\n    <h3>⚙️ Estado del Comando</h3>\n    <div style=\"padding: 10px; border-radius: 5px;\" ng-class=\"{'background-color': msg.payload.status === 'SUCCESS' ? '#c8e6c9' : '#ffcdd2'};\">\n        <p style=\"margin: 5px 0;\"><strong>Estado:</strong> \n            <span style=\"color: {{msg.payload.status === 'SUCCESS' ? '#2e7d32' : '#c62828'}};\">{{msg.payload.status}}</span>\n        </p>\n        <p style=\"margin: 5px 0;\"><strong>Código HTTP:</strong> {{msg.payload.statusCode}}</p>\n        <p style=\"margin: 5px 0;\"><strong>Respuesta:</strong> {{msg.payload.response}}</p>\n        <p style=\"margin: 5px 0; font-size: 11px; color: #999;\">{{msg.payload.timestamp}}</p>\n    </div>\n</div>",
+        "x": 850,
+        "y": 160,
+        "wires": [
+            []
+        ]
+    }
+]
