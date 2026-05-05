@@ -1,0 +1,1622 @@
+[
+    {
+        "id": "flow_receiver",
+        "type": "tab",
+        "label": "1. MQTT Receiver",
+        "disabled": false,
+        "info": "Recibe y almacena datos de dispositivos MQTT",
+        "env": []
+    },
+    {
+        "id": "flow_commands",
+        "type": "tab",
+        "label": "2. Command Control",
+        "disabled": false,
+        "info": "Envía comandos a dispositivos",
+        "env": []
+    },
+    {
+        "id": "flow_uibuilder",
+        "type": "tab",
+        "label": "3. UIBuilder Dashboard",
+        "disabled": false,
+        "info": "Dashboard con Bootstrap 5"
+    },
+    {
+        "id": "flow_api",
+        "type": "tab",
+        "label": "4. API REST",
+        "disabled": false,
+        "info": "API REST para conectar SQLite con el Dashboard"
+    },
+    {
+        "id": "mqtt_broker_main",
+        "type": "mqtt-broker",
+        "name": "ESP32 Manager",
+        "broker": "192.168.4.1",
+        "port": "1883",
+        "clientid": "nodered-client",
+        "autoConnect": true,
+        "usetls": false,
+        "compatmode": false,
+        "protocolVersion": 4,
+        "keepalive": 30,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "dashboard_tab",
+        "type": "ui_tab",
+        "name": "Inicio",
+        "icon": "home",
+        "order": 1,
+        "disabled": false
+    },
+    {
+        "id": "history_tab",
+        "type": "ui_tab",
+        "name": "Registrar",
+        "icon": "history",
+        "order": 3,
+        "disabled": false
+    },
+    {
+        "id": "config_tab",
+        "type": "ui_tab",
+        "name": "Configuración",
+        "icon": "settings",
+        "order": 5,
+        "disabled": false
+    },
+    {
+        "id": "sessions_tab",
+        "type": "ui_tab",
+        "name": "Sesiones",
+        "icon": "timeline",
+        "order": 4,
+        "disabled": false
+    },
+    {
+        "id": "session_control_group",
+        "type": "ui_group",
+        "name": "Control de Sesión",
+        "tab": "sessions_tab",
+        "order": 1,
+        "disp": true,
+        "width": 6,
+        "collapse": false
+    },
+    {
+        "id": "session_stats_group",
+        "type": "ui_group",
+        "name": "Estadísticas en Vivo",
+        "tab": "sessions_tab",
+        "order": 2,
+        "disp": true,
+        "width": 6,
+        "collapse": false
+    },
+    {
+        "id": "session_chart_group",
+        "type": "ui_group",
+        "name": "Gráfico de Medias",
+        "tab": "sessions_tab",
+        "order": 4,
+        "disp": true,
+        "width": 12,
+        "collapse": false
+    },
+    {
+        "id": "session_history_group",
+        "type": "ui_group",
+        "name": "Historial de Sesiones",
+        "tab": "sessions_tab",
+        "order": 3,
+        "disp": true,
+        "width": 12,
+        "collapse": false
+    },
+    {
+        "id": "sqlite_db",
+        "type": "sqlitedb",
+        "db": "/Users/javierdelaconcepciondorado/Documents/TFG/SIMADER/node-red/db/simader.db",
+        "mode": "RWC"
+    },
+    {
+        "id": "clients_group",
+        "type": "ui_group",
+        "name": "Clients",
+        "tab": "dashboard_tab",
+        "order": 1,
+        "disp": true,
+        "width": 6,
+        "collapse": false
+    },
+    {
+        "id": "status_group",
+        "type": "ui_group",
+        "name": "Live Status",
+        "tab": "dashboard_tab",
+        "order": 2,
+        "disp": true,
+        "width": 6,
+        "collapse": false
+    },
+    {
+        "id": "command_group",
+        "type": "ui_group",
+        "name": "Commands",
+        "tab": "dashboard_tab",
+        "order": 3,
+        "disp": true,
+        "width": 6,
+        "collapse": false
+    },
+    {
+        "id": "3c6182b3470da2e0",
+        "type": "ui_base",
+        "theme": {
+            "name": "theme-light",
+            "lightTheme": {
+                "default": "#0094CE",
+                "baseColor": "#0094CE",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
+                "edited": true,
+                "reset": false
+            },
+            "darkTheme": {
+                "default": "#097479",
+                "baseColor": "#097479",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
+                "edited": false
+            },
+            "customTheme": {
+                "name": "Untitled Theme 1",
+                "default": "#4B7930",
+                "baseColor": "#4B7930",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif"
+            },
+            "themeState": {
+                "base-color": {
+                    "default": "#0094CE",
+                    "value": "#0094CE",
+                    "edited": false
+                },
+                "page-titlebar-backgroundColor": {
+                    "value": "#0094CE",
+                    "edited": false
+                },
+                "page-backgroundColor": {
+                    "value": "#fafafa",
+                    "edited": false
+                },
+                "page-sidebar-backgroundColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "group-textColor": {
+                    "value": "#1bbfff",
+                    "edited": false
+                },
+                "group-borderColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "group-backgroundColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "widget-textColor": {
+                    "value": "#111111",
+                    "edited": false
+                },
+                "widget-backgroundColor": {
+                    "value": "#0094ce",
+                    "edited": false
+                },
+                "widget-borderColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "base-font": {
+                    "value": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif"
+                }
+            },
+            "angularTheme": {
+                "primary": "indigo",
+                "accents": "blue",
+                "warn": "red",
+                "background": "grey",
+                "palette": "light"
+            }
+        },
+        "site": {
+            "name": "SIMADER Dashboard",
+            "hideToolbar": "false",
+            "allowSwipe": "false",
+            "lockMenu": "false",
+            "allowTempTheme": "true",
+            "dateFormat": "DD/MM/YYYY",
+            "sizes": {
+                "sx": 48,
+                "sy": 48,
+                "gx": 6,
+                "gy": 6,
+                "cx": 6,
+                "cy": 6,
+                "px": 0,
+                "py": 0
+            }
+        }
+    },
+    {
+        "id": "history_group",
+        "type": "ui_group",
+        "name": "Historial de Datos",
+        "tab": "history_tab",
+        "order": 1,
+        "disp": true,
+        "width": 12,
+        "collapse": false
+    },
+    {
+        "id": "config_group",
+        "type": "ui_group",
+        "name": "Gestión de Personas",
+        "tab": "config_tab",
+        "order": 1,
+        "disp": true,
+        "width": 6,
+        "collapse": false
+    },
+    {
+        "id": "persons_group",
+        "type": "ui_group",
+        "name": "Lista de Personas",
+        "tab": "config_tab",
+        "order": 2,
+        "disp": true,
+        "width": 6,
+        "collapse": false
+    },
+    {
+        "id": "data_group",
+        "type": "ui_group",
+        "name": "Datos de Personas",
+        "tab": "config_tab",
+        "order": 3,
+        "disp": true,
+        "width": 12,
+        "collapse": false
+    },
+    {
+        "id": "capture_group",
+        "type": "ui_group",
+        "name": "Captura de Datos",
+        "tab": "",
+        "order": 1,
+        "disp": true,
+        "width": 12,
+        "collapse": false
+    },
+    {
+        "id": "80de564904d80a43",
+        "type": "ui-base",
+        "name": "My Dashboard",
+        "path": "/dashboard",
+        "appIcon": "",
+        "includeClientData": true,
+        "acceptsClientConfig": [
+            "ui-notification",
+            "ui-control"
+        ],
+        "showPathInSidebar": false,
+        "headerContent": "page",
+        "navigationStyle": "default",
+        "titleBarStyle": "default",
+        "showReconnectNotification": true,
+        "notificationDisplayTime": 1,
+        "showDisconnectNotification": true,
+        "allowInstall": false
+    },
+    {
+        "id": "c98dcdfcccd29cad",
+        "type": "ui-theme",
+        "name": "Default Theme",
+        "colors": {
+            "surface": "#ffffff",
+            "primary": "#0094CE",
+            "bgPage": "#eeeeee",
+            "groupBg": "#ffffff",
+            "groupOutline": "#cccccc"
+        },
+        "sizes": {
+            "density": "default",
+            "pagePadding": "12px",
+            "groupGap": "12px",
+            "groupBorderRadius": "4px",
+            "widgetGap": "12px"
+        }
+    },
+    {
+        "id": "d7c28b911d9e4182",
+        "type": "ui-page",
+        "name": "Page 1",
+        "ui": "80de564904d80a43",
+        "path": "/page1",
+        "icon": "home",
+        "layout": "grid",
+        "theme": "c98dcdfcccd29cad",
+        "breakpoints": [
+            {
+                "name": "Default",
+                "px": 0,
+                "cols": 3
+            },
+            {
+                "name": "Tablet",
+                "px": 576,
+                "cols": 6
+            },
+            {
+                "name": "Small Desktop",
+                "px": 768,
+                "cols": 9
+            },
+            {
+                "name": "Desktop",
+                "px": 1024,
+                "cols": 12
+            }
+        ],
+        "order": 1,
+        "className": "",
+        "visible": "true",
+        "disabled": "false"
+    },
+    {
+        "id": "b5a8bf614bd8b763",
+        "type": "ui-group",
+        "name": "Group 1",
+        "page": "d7c28b911d9e4182",
+        "width": 6,
+        "height": 1,
+        "order": 1,
+        "showTitle": true,
+        "className": "",
+        "visible": true,
+        "disabled": false,
+        "groupType": "default"
+    },
+    {
+        "id": "dashboard2_theme",
+        "type": "ui-theme",
+        "name": "SIMADER Theme",
+        "colors": {
+            "surface": "#ffffff",
+            "primary": "#0094CE",
+            "bgPage": "#f5f5f5",
+            "groupBg": "#ffffff",
+            "groupOutline": "#e0e0e0"
+        },
+        "sizes": {
+            "pagePadding": "12px",
+            "groupGap": "12px",
+            "groupBorderRadius": "8px",
+            "widgetGap": "12px"
+        }
+    },
+    {
+        "id": "page_sesiones",
+        "type": "ui-page",
+        "name": "Sesiones EMG",
+        "ui": "80de564904d80a43",
+        "path": "/sesiones",
+        "icon": "mdi-chart-line",
+        "layout": "grid",
+        "theme": "dashboard2_theme",
+        "order": 2,
+        "className": ""
+    },
+    {
+        "id": "page_historial",
+        "type": "ui-page",
+        "name": "Historial",
+        "ui": "80de564904d80a43",
+        "path": "/historial",
+        "icon": "mdi-history",
+        "layout": "grid",
+        "theme": "dashboard2_theme",
+        "order": 3,
+        "className": ""
+    },
+    {
+        "id": "page_config",
+        "type": "ui-page",
+        "name": "Configuración",
+        "ui": "80de564904d80a43",
+        "path": "/config",
+        "icon": "mdi-cog",
+        "layout": "grid",
+        "theme": "dashboard2_theme",
+        "order": 4,
+        "className": ""
+    },
+    {
+        "id": "group_control",
+        "type": "ui-group",
+        "name": "Control de Sesión",
+        "page": "page_sesiones",
+        "width": "6",
+        "height": "1",
+        "order": 1,
+        "showTitle": true,
+        "className": ""
+    },
+    {
+        "id": "group_stats",
+        "type": "ui-group",
+        "name": "Estadísticas",
+        "page": "page_sesiones",
+        "width": "6",
+        "height": "1",
+        "order": 2,
+        "showTitle": true,
+        "className": ""
+    },
+    {
+        "id": "group_chart",
+        "type": "ui-group",
+        "name": "Gráfico EMG",
+        "page": "page_sesiones",
+        "width": "12",
+        "height": "1",
+        "order": 3,
+        "showTitle": true,
+        "className": ""
+    },
+    {
+        "id": "group_history_table",
+        "type": "ui-group",
+        "name": "Historial de Sesiones",
+        "page": "page_historial",
+        "width": "12",
+        "height": "1",
+        "order": 1,
+        "showTitle": true,
+        "className": ""
+    },
+    {
+        "id": "group_personas",
+        "type": "ui-group",
+        "name": "Gestión de Personas",
+        "page": "page_config",
+        "width": "6",
+        "height": "1",
+        "order": 1,
+        "showTitle": true,
+        "className": ""
+    },
+    {
+        "id": "group_personas_list",
+        "type": "ui-group",
+        "name": "Lista de Personas",
+        "page": "page_config",
+        "width": "6",
+        "height": "1",
+        "order": 2,
+        "showTitle": true,
+        "className": ""
+    },
+    {
+        "id": "mqtt_in_all",
+        "type": "mqtt in",
+        "z": "flow_receiver",
+        "name": "Subscribe to esp32/#",
+        "topic": "esp32/#",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "mqtt_broker_main",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 200,
+        "y": 100,
+        "wires": [
+            [
+                "parse_mqtt",
+                "debug_raw",
+                "mqtt_emg_receiver",
+                "register_sensor"
+            ]
+        ]
+    },
+    {
+        "id": "register_sensor",
+        "type": "function",
+        "z": "flow_receiver",
+        "name": "Register Sensor",
+        "func": "// Registrar sensores que envían mensajes MQTT\nlet payload = msg.payload;\nif (typeof payload === 'string') {\n    try {\n        payload = JSON.parse(payload);\n    } catch(e) {\n        return null;\n    }\n}\n\n// Extraer ID del sensor del mensaje o del topic\nconst sensorId = payload.sensorId || payload.deviceId || payload.id;\nconst sensorIp = payload.ip || null;\n\nif (!sensorId) return null;\n\n// Obtener lista de sensores\nlet sensores = global.get('sensores_conectados') || [];\n\n// Buscar si ya existe\nconst idx = sensores.findIndex(s => s.id === sensorId);\n\nconst sensorData = {\n    id: sensorId,\n    ip: sensorIp,\n    nombre: payload.nombre || sensorId,\n    estado: 'conectado',\n    lastSeen: new Date().toISOString(),\n    topic: msg.topic\n};\n\nif (idx >= 0) {\n    // Actualizar existente\n    sensores[idx] = { ...sensores[idx], ...sensorData };\n} else {\n    // Añadir nuevo\n    sensores.push(sensorData);\n}\n\n// Guardar\nglobal.set('sensores_conectados', sensores);\n\n// Notificar al dashboard si hay cambios\nmsg.topic = 'sensores';\nmsg.payload = sensores;\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 480,
+        "y": 240,
+        "wires": [
+            [
+                "notify_sensores_uib"
+            ]
+        ]
+    },
+    {
+        "id": "notify_sensores_uib",
+        "type": "link out",
+        "z": "flow_receiver",
+        "name": "To UIBuilder Sensores",
+        "links": [
+            "sensores_link_in"
+        ],
+        "x": 635,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "debug_raw",
+        "type": "debug",
+        "z": "flow_receiver",
+        "name": "Raw MQTT",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 500,
+        "y": 60,
+        "wires": []
+    },
+    {
+        "id": "parse_mqtt",
+        "type": "function",
+        "z": "flow_receiver",
+        "name": "Parse & Store",
+        "func": "let payload = msg.payload;\nif(typeof payload === 'string') {\n    try {\n        payload = JSON.parse(payload);\n    } catch(e) {}\n}\n\nconst msgData = {\n    topic: msg.topic,\n    payload: payload,\n    timestamp: new Date().toISOString(),\n    date: new Date(),\n    receivedAt: Date.now()\n};\n\ncontext.set('lastMessage_' + msg.topic, msgData);\n\nlet history = context.get('history_' + msg.topic) || [];\nhistory.push(msgData);\nif(history.length > 200) {\n    history = history.slice(-200);\n}\ncontext.set('history_' + msg.topic, history);\n\nmsg.payload = msgData;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 480,
+        "y": 120,
+        "wires": [
+            [
+                "to_dashboard"
+            ]
+        ]
+    },
+    {
+        "id": "to_dashboard",
+        "type": "link out",
+        "z": "flow_receiver",
+        "name": "To Dashboard",
+        "links": [],
+        "x": 605,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "mqtt_emg_receiver",
+        "type": "function",
+        "z": "flow_receiver",
+        "name": "Process EMG Data",
+        "func": "// Solo procesar datos de esp32/emg_data\nif (msg.topic !== 'esp32/emg_data') {\n    return null;\n}\n\nconst activeSession = flow.get('activeSession');\nif (!activeSession) {\n    return null;\n}\n\nlet data;\ntry {\n    data = typeof msg.payload === 'string' ? JSON.parse(msg.payload) : msg.payload;\n} catch(e) {\n    return null;\n}\n\nif (data.emg === undefined) {\n    return null;\n}\n\n// Actualizar estadísticas en memoria\nlet count = flow.get('emgCount') || 0;\nlet sum = flow.get('emgSum') || 0;\nlet max = flow.get('emgMax') || 0;\nlet min = flow.get('emgMin') || 999;\n\ncount++;\nsum += data.emg;\nmax = Math.max(max, data.emg);\nmin = Math.min(min, data.emg);\n\nflow.set('emgCount', count);\nflow.set('emgSum', sum);\nflow.set('emgMax', max);\nflow.set('emgMin', min);\n\n// Mensaje para actualizar stats UI\nmsg.stats = {\n    count: count,\n    average: sum / count,\n    max: max,\n    min: min,\n    lastValue: data.emg\n};\n\n// Preparar para guardar en SQLite\nmsg.params = {\n    $sesion_id: activeSession.id,\n    $emg_value: data.emg,\n    $raw_value: data.raw || null,\n    $voltage: data.v || null,\n    $timestamp_device: data.ts || null\n};\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 510,
+        "y": 180,
+        "wires": [
+            [
+                "save_emg_sqlite",
+                "update_stats_ui"
+            ]
+        ]
+    },
+    {
+        "id": "save_emg_sqlite",
+        "type": "sqlite",
+        "z": "flow_receiver",
+        "mydb": "sqlite_db",
+        "sqlquery": "fixed",
+        "sql": "INSERT INTO datos_emg (sesion_id, emg_value, raw_value, voltage, timestamp_device) VALUES ($sesion_id, $emg_value, $raw_value, $voltage, $timestamp_device)",
+        "name": "Save EMG Data",
+        "x": 800,
+        "y": 160,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "update_stats_ui",
+        "type": "link out",
+        "z": "flow_receiver",
+        "name": "To Stats UI",
+        "links": [],
+        "x": 735,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "inject_test_command",
+        "type": "inject",
+        "z": "flow_commands",
+        "name": "Test: Send CheckStatus",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{\"ip\":\"192.168.4.100\",\"command\":\"Check\"}",
+        "payloadType": "json",
+        "x": 150,
+        "y": 100,
+        "wires": [
+            [
+                "build_command_url"
+            ]
+        ]
+    },
+    {
+        "id": "build_command_url",
+        "type": "function",
+        "z": "flow_commands",
+        "name": "Build URL",
+        "func": "const ip = msg.payload.ip || \"192.168.4.100\";\nconst cmd = msg.payload.command || \"Check\";\n\nmsg.url = `http://192.168.4.1/send?ip=${ip}&cmd=${cmd}`;\nmsg.payload = {\n    ip: ip,\n    command: cmd,\n    url: msg.url,\n    timestamp: new Date().toISOString()\n};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 350,
+        "y": 100,
+        "wires": [
+            [
+                "send_command"
+            ]
+        ]
+    },
+    {
+        "id": "send_command",
+        "type": "http request",
+        "z": "flow_commands",
+        "name": "HTTP GET Send",
+        "method": "GET",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "{{{url}}}",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "x": 520,
+        "y": 100,
+        "wires": [
+            [
+                "handle_response"
+            ]
+        ]
+    },
+    {
+        "id": "handle_response",
+        "type": "function",
+        "z": "flow_commands",
+        "name": "Handle Response",
+        "func": "const response = {\n    status: msg.statusCode === 200 ? 'SUCCESS' : 'ERROR',\n    statusCode: msg.statusCode,\n    response: msg.payload,\n    timestamp: new Date().toISOString()\n};\n\nmsg.payload = response;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 730,
+        "y": 100,
+        "wires": [
+            [
+                "debug_response",
+                "command_status_ui"
+            ]
+        ]
+    },
+    {
+        "id": "debug_response",
+        "type": "debug",
+        "z": "flow_commands",
+        "name": "Response Debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 850,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "command_status_ui",
+        "type": "ui_template",
+        "z": "flow_commands",
+        "group": "command_group",
+        "name": "Command Status",
+        "order": 1,
+        "format": "<div style=\"padding: 15px; font-family: Arial, sans-serif;\">\n    <h3>⚙️ Estado del Comando</h3>\n    <div style=\"padding: 10px; border-radius: 5px;\" ng-class=\"{'background-color': msg.payload.status === 'SUCCESS' ? '#c8e6c9' : '#ffcdd2'};\">\n        <p style=\"margin: 5px 0;\"><strong>Estado:</strong> \n            <span style=\"color: {{msg.payload.status === 'SUCCESS' ? '#2e7d32' : '#c62828'}};\">{{msg.payload.status}}</span>\n        </p>\n        <p style=\"margin: 5px 0;\"><strong>Código HTTP:</strong> {{msg.payload.statusCode}}</p>\n        <p style=\"margin: 5px 0;\"><strong>Respuesta:</strong> {{msg.payload.response}}</p>\n        <p style=\"margin: 5px 0; font-size: 11px; color: #999;\">{{msg.payload.timestamp}}</p>\n    </div>\n</div>",
+        "x": 850,
+        "y": 160,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "uib_handler",
+        "type": "function",
+        "z": "flow_uibuilder",
+        "name": "Handle UI Messages",
+        "func": "const topic = msg.topic;\nconst payload = msg.payload;\n\nswitch (topic) {\n    case 'session/start':\n        flow.set('activeSession', payload);\n        flow.set('emgData', []);\n        node.status({fill:'green', shape:'dot', text:'Sesión activa'});\n        node.warn(payload);\n        // Enviar comando al ESP32\n        return [null, {topic: 'esp32/commands', payload: payload}, null];\n        \n    case 'session/stop':\n        flow.set('activeSession', null);\n        node.status({fill:'red', shape:'ring', text:'Sesión detenida'});\n        \n        // Log para debug\n        node.warn('📥 Sesión recibida: ' + JSON.stringify(payload));\n        \n        // Guardar datos completos de la sesión\n        flow.set('lastSessionData', payload);\n        \n        // Validar que persona_id existe\n        if (!payload.persona_id) {\n            node.error('❌ ERROR: persona_id es null o undefined');\n            node.error('Payload completo: ' + JSON.stringify(payload));\n            return [null, null, null];\n        }\n        \n        // Preparar parámetros para insertar sesión (array para SQLite)\n        msg.params = [\n            parseInt(payload.persona_id),\n            payload.nombre || (payload.persona_nombre + ' - ' + new Date().toLocaleDateString()),\n            payload.fecha_inicio,\n            payload.fecha_fin,\n            'finalizada'\n        ];\n        \n        node.warn('💾 Guardando sesión con persona_id: ' + payload.persona_id);\n        node.warn('💾 Params array: ' + JSON.stringify(msg.params));\n        \n        return [msg, null, null];\n        \n    case 'persona/new':\n        msg.params = [payload.nombre, payload.email || null, payload.telefono || null,  payload.descripcion || null];\n        return [msg, null, null];\n        \n    case 'persona/delete':\n        msg.params = [payload.id];\n        return [msg, null, null];\n        \n    case 'sensores/request':\n        // Devolver lista de sensores conectados\n        let sensores = global.get('sensores_conectados') || [];\n        if (sensores.length === 0) {\n            sensores = [\n                { id: 'ESP32_001', ip: '192.168.4.100', nombre: 'Sensor EMG 1', estado: 'desconocido' },\n                { id: 'ESP32_002', ip: '192.168.4.101', nombre: 'Sensor EMG 2', estado: 'desconocido' }\n            ];\n        }\n        return [null, null, { topic: 'sensores', payload: sensores, _uib: msg._uib }];\n        \n    case 'esp32/commands':\n        // Reenviar comando MQTT al broker\n        node.warn('📤 Reenviando comando MQTT: ' + payload);\n        return [null, { topic: 'esp32/commands', payload: payload }, null];\n        \n    default:\n        return [null, null, null];\n}\n",
+        "outputs": 3,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 600,
+        "y": 200,
+        "wires": [
+            [
+                "save_to_db"
+            ],
+            [
+                "mqtt_out_commands"
+            ],
+            [
+                "uib_simader"
+            ]
+        ]
+    },
+    {
+        "id": "inject_load_data",
+        "type": "inject",
+        "z": "flow_uibuilder",
+        "name": "Load on Start",
+        "props": [
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "2",
+        "topic": "init",
+        "x": 160,
+        "y": 100,
+        "wires": [
+            [
+                "load_personas",
+                "load_sesiones"
+            ]
+        ]
+    },
+    {
+        "id": "load_personas",
+        "type": "sqlite",
+        "z": "flow_uibuilder",
+        "mydb": "sqlite_db",
+        "sqlquery": "fixed",
+        "sql": "SELECT id, nombre, email, telefono FROM personas ORDER BY nombre",
+        "name": "Get Personas",
+        "x": 370,
+        "y": 60,
+        "wires": [
+            [
+                "format_personas"
+            ]
+        ]
+    },
+    {
+        "id": "format_personas",
+        "type": "function",
+        "z": "flow_uibuilder",
+        "name": "Format for UI",
+        "func": "msg.topic = 'personas';\nreturn msg;",
+        "outputs": 1,
+        "x": 560,
+        "y": 60,
+        "wires": [
+            [
+                "uib_simader"
+            ]
+        ]
+    },
+    {
+        "id": "load_sesiones",
+        "type": "sqlite",
+        "z": "flow_uibuilder",
+        "mydb": "sqlite_db",
+        "sqlquery": "fixed",
+        "sql": "SELECT s.*, e.total_muestras, e.emg_promedio, e.emg_max, e.emg_min FROM sesiones s LEFT JOIN estadisticas_sesion e ON s.id = e.sesion_id WHERE s.estado = 'finalizada' ORDER BY s.fecha_inicio DESC LIMIT 50",
+        "name": "Get Sesiones",
+        "x": 370,
+        "y": 140,
+        "wires": [
+            [
+                "format_sesiones"
+            ]
+        ]
+    },
+    {
+        "id": "format_sesiones",
+        "type": "function",
+        "z": "flow_uibuilder",
+        "name": "Format for UI",
+        "func": "msg.topic = 'sesiones';\nmsg.payload = msg.payload.map(s => ({\n    ...s,\n    persona_nombre: s.nombre || 'Sesión ' + s.id\n}));\nreturn msg;",
+        "outputs": 1,
+        "x": 560,
+        "y": 140,
+        "wires": [
+            [
+                "uib_simader"
+            ]
+        ]
+    },
+    {
+        "id": "save_to_db",
+        "type": "switch",
+        "z": "flow_uibuilder",
+        "name": "Route by Topic",
+        "property": "topic",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "session/stop",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "persona/new",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "persona/delete",
+                "vt": "str"
+            }
+        ],
+        "checkall": "false",
+        "repair": false,
+        "outputs": 3,
+        "x": 820,
+        "y": 200,
+        "wires": [
+            [
+                "save_session",
+                "debug_before_save"
+            ],
+            [
+                "save_persona"
+            ],
+            [
+                "delete_persona"
+            ]
+        ]
+    },
+    {
+        "id": "debug_before_save",
+        "type": "debug",
+        "z": "flow_uibuilder",
+        "name": "Debug params",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "params",
+        "targetType": "msg",
+        "x": 850,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "save_session",
+        "type": "sqlite",
+        "z": "flow_uibuilder",
+        "mydb": "sqlite_db",
+        "sqlquery": "prepared",
+        "sql": "INSERT INTO sesiones (persona_id, nombre, fecha_inicio, fecha_fin, estado) VALUES (?, ?, ?, ?, ?)",
+        "name": "Save Session",
+        "x": 1020,
+        "y": 180,
+        "wires": [
+            [
+                "delay_before_id"
+            ]
+        ]
+    },
+    {
+        "id": "delay_before_id",
+        "type": "delay",
+        "z": "flow_uibuilder",
+        "name": "Wait 100ms",
+        "pauseType": "delay",
+        "timeout": "100",
+        "timeoutUnits": "milliseconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 1140,
+        "y": 180,
+        "wires": [
+            [
+                "get_last_insert_id"
+            ]
+        ]
+    },
+    {
+        "id": "get_last_insert_id",
+        "type": "sqlite",
+        "z": "flow_uibuilder",
+        "mydb": "sqlite_db",
+        "sqlquery": "fixed",
+        "sql": "SELECT last_insert_rowid() as id",
+        "name": "Get Last ID",
+        "x": 1320,
+        "y": 180,
+        "wires": [
+            [
+                "prepare_stats"
+            ]
+        ]
+    },
+    {
+        "id": "prepare_stats",
+        "type": "function",
+        "z": "flow_uibuilder",
+        "name": "Prepare Stats",
+        "func": "const sessionData = flow.get('lastSessionData');\n\nif (!sessionData) {\n    node.error('No session data found');\n    return null;\n}\n\n// Log para debug\nnode.warn('📦 Payload recibido: ' + JSON.stringify(msg.payload));\n\n// Obtener el ID de la sesión recién insertada\nlet sessionId;\nif (msg.payload && Array.isArray(msg.payload) && msg.payload[0] && msg.payload[0].id) {\n    sessionId = msg.payload[0].id;\n} else {\n    node.error('❌ No se pudo obtener el ID de la sesión insertada');\n    return null;\n}\n\nnode.warn('✅ Session ID obtenido: ' + sessionId);\n\n// Calcular duración en segundos\nconst inicio = new Date(sessionData.fecha_inicio);\nconst fin = new Date(sessionData.fecha_fin);\nconst duracion = Math.floor((fin - inicio) / 1000);\n\nmsg.params = [\n    sessionId,\n    sessionData.total_muestras || 0,\n    sessionData.emg_promedio || 0,\n    sessionData.emg_max || 0,\n    sessionData.emg_min || 0,\n    duracion\n];\n\n// Guardar para usar en el siguiente nodo\nmsg.sessionId = sessionId;\nmsg.sessionData = sessionData;\n\nreturn msg;",
+        "outputs": 1,
+        "x": 1460,
+        "y": 180,
+        "wires": [
+            [
+                "save_stats"
+            ]
+        ]
+    },
+    {
+        "id": "save_stats",
+        "type": "sqlite",
+        "z": "flow_uibuilder",
+        "mydb": "sqlite_db",
+        "sqlquery": "prepared",
+        "sql": "INSERT INTO estadisticas_sesion (sesion_id, total_muestras, emg_promedio, emg_max, emg_min, duracion_segundos) VALUES (?, ?, ?, ?, ?, ?)",
+        "name": "Save Stats",
+        "x": 1680,
+        "y": 180,
+        "wires": [
+            [
+                "prepare_emg_data",
+                "delay_before_reload"
+            ]
+        ]
+    },
+    {
+        "id": "prepare_emg_data",
+        "type": "function",
+        "z": "flow_uibuilder",
+        "name": "Prepare EMG Data",
+        "func": "const sessionId = msg.sessionId;\nconst sessionData = msg.sessionData;\n\nif (!sessionData.datos || sessionData.datos.length === 0) {\n    node.warn('No EMG data to save');\n    return null;\n}\n\n// Preparar datos EMG para inserción por lotes\nconst datos = sessionData.datos.map((emg, index) => {\n    return {\n        sesion_id: sessionId,\n        emg_value: emg,\n        raw_value: emg,\n        voltage: null,\n        timestamp_device: null\n    };\n});\n\nmsg.datos = datos;\nmsg.sessionId = sessionId;\n\nreturn msg;",
+        "outputs": 1,
+        "x": 1660,
+        "y": 180,
+        "wires": [
+            [
+                "save_emg_data"
+            ]
+        ]
+    },
+    {
+        "id": "save_emg_data",
+        "type": "function",
+        "z": "flow_uibuilder",
+        "name": "Insert EMG Data (Loop)",
+        "func": "const datos = msg.datos;\nconst sessionId = msg.sessionId;\n\nif (!datos || datos.length === 0) {\n    node.warn('⚠️ No hay datos EMG para guardar');\n    return null;\n}\n\nnode.warn(`📊 Insertando ${datos.length} datos EMG uno por uno...`);\n\n// Crear un mensaje por cada dato EMG\nconst msgs = [];\n\nfor (const dato of datos) {\n    msgs.push({\n        params: [\n            dato.sesion_id,\n            dato.emg_value,\n            dato.raw_value,\n            dato.voltage,\n            dato.timestamp_device\n        ],\n        sessionId: sessionId,\n        totalDatos: datos.length\n    });\n}\n\nreturn [msgs];",
+        "outputs": 1,
+        "x": 1900,
+        "y": 180,
+        "wires": [
+            [
+                "insert_single_emg"
+            ]
+        ]
+    },
+    {
+        "id": "insert_single_emg",
+        "type": "sqlite",
+        "z": "flow_uibuilder",
+        "mydb": "sqlite_db",
+        "sqlquery": "prepared",
+        "sql": "INSERT INTO datos_emg (sesion_id, emg_value, raw_value, voltage, timestamp_device) VALUES (?, ?, ?, ?, ?)",
+        "name": "Insert Single EMG",
+        "x": 2150,
+        "y": 180,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "delay_before_reload",
+        "type": "delay",
+        "z": "flow_uibuilder",
+        "name": "Wait 2s for EMG data",
+        "pauseType": "delay",
+        "timeout": "2000",
+        "timeoutUnits": "milliseconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 1900,
+        "y": 240,
+        "wires": [
+            [
+                "load_sesiones"
+            ]
+        ]
+    },
+    {
+        "id": "save_persona",
+        "type": "sqlite",
+        "z": "flow_uibuilder",
+        "mydb": "sqlite_db",
+        "sqlquery": "prepared",
+        "sql": "INSERT INTO personas (nombre, email, telefono, descripcion) VALUES (?, ?, ?, ?)",
+        "name": "Save Persona",
+        "x": 1040,
+        "y": 240,
+        "wires": [
+            [
+                "load_personas"
+            ]
+        ]
+    },
+    {
+        "id": "delete_persona",
+        "type": "sqlite",
+        "z": "flow_uibuilder",
+        "mydb": "sqlite_db",
+        "sqlquery": "prepared",
+        "sql": "DELETE FROM personas WHERE id = ?",
+        "name": "Delete Persona",
+        "x": 1020,
+        "y": 320,
+        "wires": [
+            [
+                "load_personas"
+            ]
+        ]
+    },
+    {
+        "id": "mqtt_out_commands",
+        "type": "mqtt out",
+        "z": "flow_uibuilder",
+        "name": "MQTT Commands",
+        "topic": "",
+        "qos": "",
+        "retain": "",
+        "broker": "mqtt_broker_main",
+        "x": 990,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "mqtt_in_emg",
+        "type": "mqtt in",
+        "z": "flow_uibuilder",
+        "name": "EMG Data",
+        "topic": "esp32/emg_data",
+        "qos": "0",
+        "datatype": "json",
+        "broker": "mqtt_broker_main",
+        "inputs": 0,
+        "x": 160,
+        "y": 300,
+        "wires": [
+            [
+                "process_emg"
+            ]
+        ]
+    },
+    {
+        "id": "process_emg",
+        "type": "function",
+        "z": "flow_uibuilder",
+        "name": "Process EMG",
+        "func": "const activeSession = flow.get('activeSession');\nif (!activeSession) return null;\n\nconst data = msg.payload;\nif (!data || data.emg === undefined) return null;\n\n// Guardar en array temporal\nlet emgData = flow.get('emgData') || [];\nemgData.push(data.emg);\nflow.set('emgData', emgData);\n\n// Enviar a UI\nmsg.topic = 'emg_data';\nmsg.payload = data.emg;\n\nreturn msg;",
+        "outputs": 1,
+        "x": 370,
+        "y": 300,
+        "wires": [
+            [
+                "uib_simader"
+            ]
+        ]
+    },
+    {
+        "id": "sensores_link_in",
+        "type": "link in",
+        "z": "flow_uibuilder",
+        "name": "Sensores Update",
+        "links": [
+            "notify_sensores_uib"
+        ],
+        "x": 165,
+        "y": 380,
+        "wires": [
+            [
+                "uib_simader"
+            ]
+        ]
+    },
+    {
+        "id": "mqtt_in_clients",
+        "type": "mqtt in",
+        "z": "flow_uibuilder",
+        "name": "ESP32 Clients",
+        "topic": "esp32/clients",
+        "qos": "0",
+        "datatype": "json",
+        "broker": "mqtt_broker_main",
+        "inputs": 0,
+        "x": 160,
+        "y": 420,
+        "wires": [
+            [
+                "format_clients"
+            ]
+        ]
+    },
+    {
+        "id": "format_clients",
+        "type": "function",
+        "z": "flow_uibuilder",
+        "name": "Format Clients",
+        "func": "// Formatear clientes del ESP32 para el frontend\nif (!msg.payload || !msg.payload.clients) {\n    return null;\n}\n\nmsg.topic = 'sensores';\nreturn msg;",
+        "outputs": 1,
+        "x": 360,
+        "y": 420,
+        "wires": [
+            [
+                "uib_simader"
+            ]
+        ]
+    },
+    {
+        "id": "mqtt_in_responses",
+        "type": "mqtt in",
+        "z": "flow_uibuilder",
+        "name": "ESP32 Responses",
+        "topic": "esp32/responses",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "mqtt_broker_main",
+        "inputs": 0,
+        "x": 160,
+        "y": 500,
+        "wires": [
+            [
+                "process_responses"
+            ]
+        ]
+    },
+    {
+        "id": "process_responses",
+        "type": "function",
+        "z": "flow_uibuilder",
+        "name": "Process ESP32 Responses",
+        "func": "// Reenviar respuestas del ESP32 a UIBuilder\nmsg.topic = 'esp32/responses';\nreturn msg;",
+        "outputs": 1,
+        "x": 380,
+        "y": 500,
+        "wires": [
+            [
+                "uib_simader"
+            ]
+        ]
+    },
+    {
+        "id": "uib_simader",
+        "type": "uibuilder",
+        "z": "flow_uibuilder",
+        "name": "SIMADER Dashboard",
+        "topic": "",
+        "url": "simader",
+        "okToGo": true,
+        "fwdInMessages": false,
+        "allowScripts": true,
+        "allowStyles": true,
+        "copyIndex": true,
+        "templateFolder": "blank",
+        "extTemplate": "",
+        "showfolder": true,
+        "reload": true,
+        "sourceFolder": "src",
+        "deployedVersion": "",
+        "showMsgUib": false,
+        "title": "",
+        "descr": "",
+        "editurl": "vscode://file/Users/javierdelaconcepciondorado/Documents/TFG/SIMADER/node-red/uibuilder/simader/?windowId=_blank",
+        "x": 300,
+        "y": 220,
+        "wires": [
+            [
+                "uib_handler"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "api_get_personas",
+        "type": "http in",
+        "z": "flow_api",
+        "name": "GET /api/personas",
+        "url": "/api/personas",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 80,
+        "wires": [
+            [
+                "query_api_personas"
+            ]
+        ]
+    },
+    {
+        "id": "query_api_personas",
+        "type": "sqlite",
+        "z": "flow_api",
+        "mydb": "sqlite_db",
+        "sqlquery": "fixed",
+        "sql": "SELECT id, nombre, email, telefono, descripcion, fecha_creacion FROM personas ORDER BY nombre",
+        "name": "Query Personas",
+        "x": 370,
+        "y": 80,
+        "wires": [
+            [
+                "response_personas"
+            ]
+        ]
+    },
+    {
+        "id": "response_personas",
+        "type": "http response",
+        "z": "flow_api",
+        "name": "Response",
+        "statusCode": "200",
+        "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+        },
+        "x": 550,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "api_get_sesiones",
+        "type": "http in",
+        "z": "flow_api",
+        "name": "GET /api/sesiones",
+        "url": "/api/sesiones",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 160,
+        "wires": [
+            [
+                "query_api_sesiones"
+            ]
+        ]
+    },
+    {
+        "id": "query_api_sesiones",
+        "type": "sqlite",
+        "z": "flow_api",
+        "mydb": "sqlite_db",
+        "sqlquery": "fixed",
+        "sql": "SELECT s.id, s.nombre, s.fecha_inicio, s.fecha_fin, s.estado, p.nombre as persona_nombre, p.id as persona_id, e.total_muestras, e.emg_promedio, e.emg_max, e.emg_min, e.duracion_segundos FROM sesiones s LEFT JOIN personas p ON s.persona_id = p.id LEFT JOIN estadisticas_sesion e ON s.id = e.sesion_id WHERE s.estado = 'finalizada' ORDER BY s.fecha_inicio DESC",
+        "name": "Query Sesiones",
+        "x": 380,
+        "y": 160,
+        "wires": [
+            [
+                "response_sesiones"
+            ]
+        ]
+    },
+    {
+        "id": "response_sesiones",
+        "type": "http response",
+        "z": "flow_api",
+        "name": "Response",
+        "statusCode": "200",
+        "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+        },
+        "x": 570,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "api_get_sesion_datos",
+        "type": "http in",
+        "z": "flow_api",
+        "name": "GET /api/sesion/:id/datos",
+        "url": "/api/sesion/:id/datos",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 180,
+        "y": 240,
+        "wires": [
+            [
+                "prepare_query_datos"
+            ]
+        ]
+    },
+    {
+        "id": "prepare_query_datos",
+        "type": "function",
+        "z": "flow_api",
+        "name": "Prepare Query",
+        "func": "const id = parseInt(msg.req.params.id);\nif (isNaN(id)) {\n    msg.payload = { error: 'Invalid session ID' };\n    return [null, msg];\n}\nmsg.params = [id];\nreturn msg;",
+        "outputs": 1,
+        "x": 400,
+        "y": 240,
+        "wires": [
+            [
+                "query_api_datos"
+            ]
+        ]
+    },
+    {
+        "id": "query_api_datos",
+        "type": "sqlite",
+        "z": "flow_api",
+        "mydb": "sqlite_db",
+        "sqlquery": "prepared",
+        "sql": "SELECT emg_value, raw_value, voltage, timestamp_device, timestamp_server FROM datos_emg WHERE sesion_id = ? ORDER BY id",
+        "name": "Query Datos EMG",
+        "x": 600,
+        "y": 240,
+        "wires": [
+            [
+                "format_datos"
+            ]
+        ]
+    },
+    {
+        "id": "format_datos",
+        "type": "function",
+        "z": "flow_api",
+        "name": "Format Response",
+        "func": "// Extraer solo los valores EMG para el gráfico\nconst emgValues = msg.payload.map(d => d.emg_value);\nconst fullData = msg.payload;\n\nmsg.payload = {\n    sesion_id: msg.req.params.id,\n    total: fullData.length,\n    emg_values: emgValues,\n    datos: fullData\n};\nreturn msg;",
+        "outputs": 1,
+        "x": 790,
+        "y": 240,
+        "wires": [
+            [
+                "response_datos"
+            ]
+        ]
+    },
+    {
+        "id": "response_datos",
+        "type": "http response",
+        "z": "flow_api",
+        "name": "Response",
+        "statusCode": "200",
+        "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+        },
+        "x": 970,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "api_get_estadisticas",
+        "type": "http in",
+        "z": "flow_api",
+        "name": "GET /api/estadisticas",
+        "url": "/api/estadisticas",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 170,
+        "y": 320,
+        "wires": [
+            [
+                "query_api_stats"
+            ]
+        ]
+    },
+    {
+        "id": "query_api_stats",
+        "type": "sqlite",
+        "z": "flow_api",
+        "mydb": "sqlite_db",
+        "sqlquery": "fixed",
+        "sql": "SELECT p.nombre as persona, COUNT(s.id) as total_sesiones, SUM(e.total_muestras) as total_muestras, AVG(e.emg_promedio) as emg_promedio_global, MAX(e.emg_max) as emg_max_global, MIN(e.emg_min) as emg_min_global FROM personas p LEFT JOIN sesiones s ON p.id = s.persona_id AND s.estado = 'finalizada' LEFT JOIN estadisticas_sesion e ON s.id = e.sesion_id GROUP BY p.id ORDER BY total_sesiones DESC",
+        "name": "Query Stats",
+        "x": 390,
+        "y": 320,
+        "wires": [
+            [
+                "response_stats"
+            ]
+        ]
+    },
+    {
+        "id": "response_stats",
+        "type": "http response",
+        "z": "flow_api",
+        "name": "Response",
+        "statusCode": "200",
+        "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+        },
+        "x": 570,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "api_get_sensores",
+        "type": "http in",
+        "z": "flow_api",
+        "name": "GET /api/sensores",
+        "url": "/api/sensores",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 400,
+        "wires": [
+            [
+                "get_sensores_list"
+            ]
+        ]
+    },
+    {
+        "id": "get_sensores_list",
+        "type": "function",
+        "z": "flow_api",
+        "name": "Get Sensores List",
+        "func": "// Obtener sensores del contexto global o devolver lista por defecto\nlet sensores = global.get('sensores_conectados') || [];\n\n// Si no hay sensores registrados, devolver lista de ejemplo\nif (sensores.length === 0) {\n    sensores = [\n        { id: 'ESP32_001', ip: '192.168.4.100', nombre: 'Sensor EMG 1', estado: 'desconocido' },\n        { id: 'ESP32_002', ip: '192.168.4.101', nombre: 'Sensor EMG 2', estado: 'desconocido' }\n    ];\n}\n\nmsg.payload = sensores;\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 390,
+        "y": 400,
+        "wires": [
+            [
+                "response_sensores"
+            ]
+        ]
+    },
+    {
+        "id": "response_sensores",
+        "type": "http response",
+        "z": "flow_api",
+        "name": "Response",
+        "statusCode": "200",
+        "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+        },
+        "x": 590,
+        "y": 400,
+        "wires": []
+    },
+    {
+        "id": "comment_api",
+        "type": "comment",
+        "z": "flow_api",
+        "name": "📡 API REST - Endpoints disponibles",
+        "info": "## Endpoints:\n\n- GET /api/personas - Lista de personas\n- GET /api/sesiones - Sesiones con estadísticas\n- GET /api/sesion/:id/datos - Datos EMG de una sesión\n- GET /api/estadisticas - Resumen por persona\n- GET /api/sensores - Lista de sensores conectados\n\n## Ejemplo:\nhttp://localhost:1880/api/personas",
+        "x": 210,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "test_api_emg",
+        "type": "http in",
+        "z": "flow_api",
+        "name": "TEST /api/test-emg",
+        "url": "/api/test-emg",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 180,
+        "y": 500,
+        "wires": [
+            [
+                "test_query_emg"
+            ]
+        ]
+    },
+    {
+        "id": "test_query_emg",
+        "type": "sqlite",
+        "z": "flow_api",
+        "mydb": "sqlite_db",
+        "sqlquery": "fixed",
+        "sql": "SELECT emg_value FROM datos_emg WHERE sesion_id = 1 LIMIT 10",
+        "name": "Test Query",
+        "x": 400,
+        "y": 500,
+        "wires": [
+            [
+                "test_response_emg"
+            ]
+        ]
+    },
+    {
+        "id": "test_response_emg",
+        "type": "http response",
+        "z": "flow_api",
+        "name": "Test Response",
+        "statusCode": "200",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "x": 600,
+        "y": 500,
+        "wires": []
+    }
+]

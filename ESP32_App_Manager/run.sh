@@ -1,0 +1,1 @@
+pio run --target upload --upload-port /dev/cu.usbserial-0001 && pio device monitor --port /dev/cu.usbserial-0001 --baud 115200

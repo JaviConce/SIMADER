@@ -1,0 +1,13 @@
+{
+    "name": "node-red-project",
+    "description": "A Node-RED Project",
+    "version": "0.0.1",
+    "private": true,
+    "dependencies": {
+        "@flowfuse/node-red-dashboard": "^1.30.2",
+        "node-red-contrib-uibuilder": "^7.5.0",
+        "node-red-dashboard": "^3.6.6",
+        "node-red-node-mysql": "~3.0.0",
+        "node-red-node-sqlite": "~1.1.1"
+    }
+}

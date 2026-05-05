@@ -1,0 +1,24 @@
+# Node-RED configuration files
+settings.js
+flows*.json
+flows*.json.backup
+*_cred*.json
+
+# Runtime data
+.config*.json
+lib/
+
+# Logs
+*.log
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Node modules
+node_modules/
+
+# Environment variables
+.env
+.env.local
+.env.*.local

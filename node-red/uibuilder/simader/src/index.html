@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIMADER - Sistema de Monitoreo EMG</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top shadow">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="#">
+                <i class="bi bi-activity me-2 fs-4"></i>
+                <span class="fw-bold">SIMADER</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" data-page="sesiones">
+                            <i class="bi bi-graph-up me-1"></i> Sesiones
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="historial">
+                            <i class="bi bi-clock-history me-1"></i> Historial
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="configuracion">
+                            <i class="bi bi-gear me-1"></i> Configuración
+                        </a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-light text-dark me-2" id="connectionStatus">
+                        <i class="bi bi-circle-fill text-danger me-1"></i> Desconectado
+                    </span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container-fluid py-4">
+
+        <!-- Page: Sesiones -->
+        <div id="page-sesiones" class="page-content">
+            <div class="row g-4">
+                <!-- Control de Sesión -->
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="bi bi-play-circle me-2"></i>Control de Sesión</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Seleccionar Persona</label>
+                                <select class="form-select form-select-lg" id="selectPersona">
+                                    <option value="">-- Seleccionar --</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Seleccionar Sensor</label>
+                                <select class="form-select form-select-lg" id="selectSensor">
+                                    <option value="">-- Seleccionar --</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Descripción de la Sesión</label>
+                                <input type="text" class="form-control form-control-lg" id="inputDescripcionSesion"
+                                    placeholder="Ej: Sesión de rehabilitación pierna izquierda">
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-warning btn-lg" id="btnCheck">
+                                    <i class="bi bi-check-circle me-2"></i>Comprobar sensor
+                                </button>
+                                <button class="btn btn-info btn-lg" id="btnCalibrar">
+                                    <i class="bi bi-sliders me-2"></i>Calibrar Sensor
+                                </button>
+                                <button class="btn btn-success btn-lg" id="btnAbrirModal">
+                                    <i class="bi bi-play-fill me-2"></i>Control de Sesión
+                                </button>
+                            </div>
+
+                            <div class="alert mt-3 mb-0" id="alertEstado" role="alert">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <span id="estadoTexto">Sin sesión activa</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Estadísticas y Gráfico en Tiempo Real -->
+                <div class="col-lg-8">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Estadísticas y Monitoreo en Tiempo Real</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3 mb-3">
+                                <div class="col-6 col-md-3">
+                                    <div class="stat-card bg-primary bg-gradient text-white rounded-3 p-3 text-center">
+                                        <i class="bi bi-hash fs-2"></i>
+                                        <h2 class="mb-0 fw-bold" id="statMuestras">0</h2>
+                                        <small>Muestras</small>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="stat-card bg-success bg-gradient text-white rounded-3 p-3 text-center">
+                                        <i class="bi bi-graph-up fs-2"></i>
+                                        <h2 class="mb-0 fw-bold" id="statPromedio">0.0000</h2>
+                                        <small>Promedio</small>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="stat-card bg-warning bg-gradient text-dark rounded-3 p-3 text-center">
+                                        <i class="bi bi-arrow-up-circle fs-2"></i>
+                                        <h2 class="mb-0 fw-bold" id="statMax">0.0000</h2>
+                                        <small>Máximo</small>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="stat-card bg-danger bg-gradient text-white rounded-3 p-3 text-center">
+                                        <i class="bi bi-lightning fs-2"></i>
+                                        <h2 class="mb-0 fw-bold" id="statUltimo">0.0000</h2>
+                                        <small>Mínimo</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráfico -->
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div
+                            class="card-header bg-dark text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <h5 class="mb-0"><i class="bi bi-graph-up-arrow me-2"></i>Gráfico EMG</h5>
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <select class="form-select form-select-sm" id="selectPersonaGrafico"
+                                    style="width: auto; min-width: 180px;">
+                                    <option value="">-- Seleccionar Persona --</option>
+                                </select>
+                                <select class="form-select form-select-sm" id="selectSesionGrafico"
+                                    style="width: auto; min-width: 220px;" disabled>
+                                    <option value="">-- Primero selecciona persona --</option>
+                                </select>
+                                <button class="btn btn-outline-light btn-sm" id="btnRefreshChart">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container" style="position: relative; height: 350px;">
+                                <canvas id="chartEMG"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page: Historial -->
+        <div id="page-historial" class="page-content d-none">
+            <div class="card border-0 shadow-sm">
+                <div
+                    class="card-header bg-secondary text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h5 class="mb-0"><i class="bi bi-table me-2"></i>Historial de Sesiones</h5>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <!--TODO: Implementar filtro por persona-->
+                        <select class="form-select form-select-sm" id="selectPersonaHistorial"
+                            style="width: auto; min-width: 180px;">
+                            <option value="">Todas las personas</option>
+                        </select>
+                        <button class="btn btn-outline-light btn-sm" id="btnExportCSV">
+                            <i class="bi bi-download me-1"></i>Exportar CSV
+                        </button>
+                        <button class="btn btn-outline-light btn-sm" id="btnRefreshHistory">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th><i class="bi bi-calendar me-1"></i>Fecha</th>
+                                    <th><i class="bi bi-person me-1"></i>Persona</th>
+                                    <th class="text-end"><i class="bi bi-hash me-1"></i>Muestras</th>
+                                    <th class="text-end"><i class="bi bi-graph-up me-1"></i>Promedio</th>
+                                    <th class="text-end"><i class="bi bi-arrow-up me-1"></i>Máx</th>
+                                    <th class="text-end"><i class="bi bi-arrow-down me-1"></i>Mín</th>
+                                    <th class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historialBody">
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-4">
+                                        <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                        No hay sesiones registradas
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page: Configuración -->
+        <div id="page-configuracion" class="page-content d-none">
+            <div class="row g-4">
+                <!-- Agregar Persona -->
+                <div class="col-lg-6">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0"><i class="bi bi-person-plus me-2"></i>Agregar Persona</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="formPersona">
+                                <div class="mb-3">
+                                    <label class="form-label">Nombre Completo *</label>
+                                    <input type="text" class="form-control" id="inputNombre" required
+                                        placeholder="Ej: Juan García">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="inputEmail"
+                                        placeholder="Ej: juan@email.com">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Teléfono</label>
+                                    <input type="tel" class="form-control" id="inputTelefono"
+                                        placeholder="Ej: +34 612345678">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Descripción</label>
+                                    <input type="text" class="form-control" id="inputDescripcion"
+                                        placeholder="Ej: Paciente con lesión en la pierna">
+                                </div>
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="bi bi-plus-circle me-2"></i>Agregar Persona
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lista de Personas -->
+                <div class="col-lg-6">
+                    <div class="card border-0 shadow-sm">
+                        <div
+                            class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-people me-2"></i>Personas Registradas</h5>
+                            <span class="badge bg-light text-dark" id="totalPersonas">0</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="list-group list-group-flush" id="listaPersonas">
+                                <div class="list-group-item text-center text-muted py-4">
+                                    <i class="bi bi-person-x fs-1 d-block mb-2"></i>
+                                    No hay personas registradas
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal de Calibración -->
+    <div class="modal fade" id="modalCalibracion" tabindex="-1" aria-labelledby="modalCalibracionLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="modalCalibracionLabel">
+                        <i class="bi bi-sliders me-2"></i>Calibración del Sensor EMG
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" id="btnCloseCalibration"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Estado de calibración -->
+                    <div class="alert alert-info mb-4" id="calibrationAlert">
+                        <h6 class="alert-heading mb-2">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <span id="calibrationPhaseTitle">Preparando calibración...</span>
+                        </h6>
+                        <p class="mb-0" id="calibrationPhaseDescription">
+                            Siga las instrucciones cuidadosamente para una calibración precisa.
+                        </p>
+                    </div>
+
+                    <!-- Barra de progreso -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold">Progreso</span>
+                            <span id="calibrationTimer" class="badge bg-secondary">--</span>
+                        </div>
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                 id="calibrationProgress"
+                                 role="progressbar"
+                                 style="width: 0%"
+                                 aria-valuenow="0"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100">
+                                <span id="calibrationProgressText">0%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Instrucciones visuales -->
+                    <div class="card bg-dark text-white mb-3" id="calibrationVisual">
+                        <div class="card-body text-center py-5">
+                            <i class="bi bi-person-arms-up display-1 mb-3" id="calibrationIcon"></i>
+                            <h4 id="calibrationInstruction">Esperando inicio...</h4>
+                        </div>
+                    </div>
+
+                    <!-- Resultados -->
+                    <div class="card d-none" id="calibrationResults">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-3 text-muted">Resultados de Calibración</h6>
+                            <div class="row">
+                                <div class="col-6">
+                                    <p class="mb-1"><strong>Valor Reposo:</strong></p>
+                                    <p class="text-muted" id="calibrationBaseline">--</p>
+                                </div>
+                                <div class="col-6">
+                                    <p class="mb-1"><strong>Valor Máximo:</strong></p>
+                                    <p class="text-muted" id="calibrationMax">--</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botones de control -->
+                    <div class="d-grid gap-2 mt-4">
+                        <button class="btn btn-info btn-lg" id="btnStartCalibration">
+                            <i class="bi bi-play-fill me-2"></i>Iniciar Calibración
+                        </button>
+                        <button class="btn btn-secondary btn-lg d-none" id="btnCancelCalibration">
+                            <i class="bi bi-x-circle me-2"></i>Cancelar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Control de Sesión -->
+    <div class="modal fade" id="modalSesion" tabindex="-1" aria-labelledby="modalSesionLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalSesionLabel">
+                        <i class="bi bi-play-circle me-2"></i>Control de Sesión EMG
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-3">
+                        <div class="alert" id="modalAlertEstado" role="alert">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <span id="modalEstadoTexto">Sin sesión activa</span>
+                        </div>
+                    </div>
+
+                    <!-- Gráfico en Tiempo Real del Modal -->
+                    <div class="mb-4">
+                        <div class="card bg-transparent border-light">
+                            <div class="card-body">
+                                <div class="chart-container" style="position: relative; height: 300px;">
+                                    <canvas id="chartModalRealTime"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Indicador de Fatiga Muscular -->
+                    <div class="mb-4" id="fatigaIndicator" style="display: none;">
+                        <div class="card bg-transparent border-light">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="mb-0 text-light">
+                                        <i class="bi bi-activity me-2"></i>Estabilidad de la Señal EMG
+                                    </h6>
+                                    <span id="fatigaStatus" class="badge bg-success">✓ Señal estable</span>
+                                </div>
+                                <div class="progress" style="height: 25px;">
+                                    <div id="fatigaBar" class="progress-bar bg-success" role="progressbar"
+                                         style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                                        <span id="fatigaText" class="fw-bold">0%</span>
+                                    </div>
+                                </div>
+
+                                <!-- Métricas de Debug -->
+                                <div class="mt-3 p-2 bg-dark rounded">
+                                    <div class="row g-2 small text-light">
+                                        <div class="col-6">
+                                            <strong>RMS Baseline:</strong> <span id="debugBaseline">-</span>
+                                        </div>
+                                        <div class="col-6">
+                                            <strong>RMS Actual:</strong> <span id="debugRMSActual">-</span>
+                                        </div>
+                                        <div class="col-6">
+                                            <strong>Cambio RMS:</strong> <span id="debugRMSIncrease">-</span>
+                                        </div>
+                                        <div class="col-6">
+                                            <strong>Std Dev:</strong> <span id="debugStdDev">-</span>
+                                        </div>
+                                        <div class="col-6">
+                                            <strong>Valor EMG:</strong> <span id="debugEMGValue">-</span>
+                                        </div>
+                                        <div class="col-6">
+                                            <strong>Variabilidad:</strong> <span id="debugVariability">-</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        Detecta cambios bruscos, variabilidad extrema e inestabilidad en la señal
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <button class="btn btn-success btn-lg w-100" id="btnModalIniciar">
+                                <i class="bi bi-play-fill me-2"></i>Iniciar Sesión
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button class="btn btn-danger btn-lg w-100" id="btnModalDetener" disabled>
+                                <i class="bi bi-stop-fill me-2"></i>Detener Sesión
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="toastNotification" class="toast" role="alert">
+            <div class="toast-header">
+                <i class="bi bi-bell me-2"></i>
+                <strong class="me-auto" id="toastTitle">Notificación</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body" id="toastMessage"></div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js (Local) -->
+    <script src="./chart.min.js"></script>
+    <!-- UIBuilder Client -->
+    <script src="../uibuilder/uibuilder.iife.min.js"></script>
+    <!-- App JS -->
+    <script src="./app.js"></script>
+</body>
+
+</html>
