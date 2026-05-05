@@ -1,0 +1,594 @@
+/* ===================================
+   SIMADER - Custom Styles
+   Bootstrap 5 Theme Enhancement
+   =================================== */
+
+:root {
+    --primary-color: #0d6efd;
+    --secondary-color: #6c757d;
+    --success-color: #198754;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #0dcaf0;
+    --dark-color: #212529;
+    --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --gradient-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    --gradient-danger: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+    --gradient-info: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
+}
+
+/* Body */
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+    min-height: 100vh;
+}
+
+/* Navbar Enhancement */
+.navbar {
+    background: var(--gradient-primary) !important;
+    backdrop-filter: blur(10px);
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+    letter-spacing: -0.5px;
+}
+
+.nav-link {
+    font-weight: 500;
+    padding: 0.5rem 1rem !important;
+    border-radius: 8px;
+    margin: 0 0.25rem;
+    transition: all 0.3s ease;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Cards */
+.card {
+    border-radius: 16px;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12) !important;
+}
+
+.card-header {
+    border-bottom: none;
+    padding: 1rem 1.25rem;
+    font-weight: 600;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* Stat Cards */
+.stat-card {
+    transition: transform 0.3s ease;
+    cursor: default;
+}
+
+.stat-card:hover {
+    transform: scale(1.05);
+}
+
+.stat-card h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -1px;
+}
+
+.stat-card small {
+    font-size: 0.75rem;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Buttons */
+.btn {
+    border-radius: 10px;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.btn-lg {
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+}
+
+.btn-success {
+    background: var(--gradient-success);
+    border: none;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, #0f8a7e 0%, #32d970 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(17, 153, 142, 0.4);
+}
+
+.btn-danger {
+    background: var(--gradient-danger);
+    border: none;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #d42d40 0%, #e04d3a 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(235, 51, 73, 0.4);
+}
+
+/* Form Controls */
+.form-control,
+.form-select {
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.15);
+}
+
+.form-select-lg {
+    padding: 1rem 1.25rem;
+    font-size: 1.1rem;
+}
+
+/* Alerts */
+.alert {
+    border-radius: 12px;
+    border: none;
+    font-weight: 500;
+}
+
+#alertEstado {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
+    color: #664d03;
+}
+
+#alertEstado.alert-success {
+    background: linear-gradient(135deg, #d1e7dd 0%, #a3cfbb 100%);
+    color: #0f5132;
+}
+
+#alertEstado.alert-danger {
+    background: linear-gradient(135deg, #f8d7da 0%, #f1aeb5 100%);
+    color: #842029;
+}
+
+/* Tables - Dark Theme */
+.table {
+    margin-bottom: 0;
+    color: #e2e8f0;
+}
+
+.table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    padding: 1rem;
+    background-color: #1a202c;
+    color: #cbd5e0;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.table td {
+    padding: 1rem;
+    vertical-align: middle;
+    background-color: #2d3748;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+}
+
+.table-dark {
+    background-color: #1a202c;
+    color: #cbd5e0;
+}
+
+.table-dark th,
+.table-dark td {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.table-hover tbody tr:hover td {
+    background-color: #374151;
+}
+
+.table-striped tbody tr:nth-of-type(odd) td {
+    background-color: #2d3748;
+}
+
+.table-striped tbody tr:nth-of-type(even) td {
+    background-color: #3a4556;
+}
+
+/* List Group */
+.list-group-item {
+    border: none;
+    border-bottom: 1px solid #e9ecef;
+    padding: 1rem 1.25rem;
+    transition: background 0.3s ease;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fa;
+}
+
+.list-group-item:last-child {
+    border-bottom: none;
+}
+
+/* Chart Container */
+.chart-container {
+    padding: 1rem 0;
+}
+
+/* Badges */
+.badge {
+    font-weight: 600;
+    padding: 0.5em 1em;
+    border-radius: 8px;
+}
+
+/* Toast */
+.toast {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+/* Connection Status */
+#connectionStatus {
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.page-content {
+    animation: fadeIn 0.4s ease;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.recording .stat-card {
+    animation: pulse 1.5s infinite;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a1a1a1;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .stat-card h2 {
+        font-size: 1.25rem;
+    }
+
+    .stat-card small {
+        font-size: 0.65rem;
+    }
+
+    .card-header h5 {
+        font-size: 1rem;
+    }
+
+    .btn-lg {
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+    }
+
+    .navbar-brand span {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .container-fluid {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .card-body {
+        padding: 1rem;
+    }
+
+    .stat-card {
+        padding: 0.75rem !important;
+    }
+
+    .stat-card i {
+        font-size: 1.25rem !important;
+    }
+
+    .stat-card h2 {
+        font-size: 1rem;
+    }
+}
+
+/* Modal Styles - Dark Theme */
+.modal-content {
+    background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+    color: #f7fafc;
+    border: none;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-body {
+    padding: 2rem;
+}
+
+.modal-content .card {
+    background: rgba(45, 55, 72, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #e2e8f0;
+}
+
+.modal-content .card-body {
+    padding: 1.25rem;
+}
+
+.modal-content .text-muted {
+    color: #a0aec0 !important;
+}
+
+.modal-content #modalAlertEstado {
+    background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #cbd5e0;
+}
+
+.modal-content #modalAlertEstado.alert-success {
+    background: linear-gradient(135deg, #2f855a 0%, #276749 100%);
+    border-color: #38a169;
+    color: #f0fff4;
+}
+
+.modal-content #modalAlertEstado.alert-warning {
+    background: linear-gradient(135deg, #d69e2e 0%, #b7791f 100%);
+    border-color: #f6ad55;
+    color: #fffff0;
+}
+
+/* Backdrop más oscuro */
+.modal-backdrop.show {
+    opacity: 0.7;
+}
+
+/* ===================================
+   Calibration Modal Styles
+   =================================== */
+
+/* Calibration Alert Phases */
+#calibrationAlert {
+    border-radius: 12px;
+    padding: 1.25rem;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.4s ease;
+}
+
+#calibrationAlert.alert-info {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    color: #f0f9ff;
+}
+
+#calibrationAlert.alert-warning {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: #fef3c7;
+}
+
+#calibrationAlert.alert-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: #fee2e2;
+}
+
+#calibrationAlert.alert-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #d1fae5;
+}
+
+#calibrationAlert .alert-heading {
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Calibration Visual Card */
+#calibrationVisual {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    transition: all 0.3s ease;
+}
+
+#calibrationVisual .card-body {
+    padding: 3rem 2rem;
+}
+
+#calibrationIcon {
+    color: #60a5fa;
+    transition: all 0.3s ease;
+    filter: drop-shadow(0 0 20px rgba(96, 165, 250, 0.4));
+}
+
+#calibrationInstruction {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0;
+    color: #e2e8f0;
+}
+
+/* Progress Bar Enhancements */
+.modal-content .progress {
+    background-color: rgba(45, 55, 72, 0.8);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content .progress-bar {
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: width 0.3s ease;
+}
+
+#calibrationTimer {
+    font-size: 1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 700;
+}
+
+/* Calibration Results Card */
+#calibrationResults {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%);
+    border: 2px solid rgba(16, 185, 129, 0.3);
+    border-radius: 12px;
+}
+
+#calibrationResults .card-subtitle {
+    color: #10b981;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.85rem;
+}
+
+#calibrationResults strong {
+    color: #cbd5e0;
+}
+
+#calibrationResults .text-muted {
+    color: #94a3b8 !important;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+/* Calibration Buttons */
+#btnStartCalibration {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    border: none;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+    transition: all 0.3s ease;
+}
+
+#btnStartCalibration:hover {
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4);
+}
+
+#btnCancelCalibration {
+    background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+    border: none;
+    transition: all 0.3s ease;
+}
+
+#btnCancelCalibration:hover {
+    background: linear-gradient(135deg, #475569 0%, #334155 100%);
+    transform: translateY(-2px);
+}
+
+/* Calibration Modal Header */
+#modalCalibracion .modal-header {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    border-bottom: none;
+}
+
+/* Animation for phase transitions */
+@keyframes phaseTransition {
+    0% {
+        transform: scale(0.95);
+        opacity: 0.7;
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+#calibrationAlert {
+    animation: phaseTransition 0.5s ease-in-out;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    body {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+
+    .card {
+        background: #1f2937;
+        color: #f3f4f6;
+    }
+
+    .form-control,
+    .form-select {
+        background: #374151;
+        border-color: #4b5563;
+        color: #f3f4f6;
+    }
+
+    .list-group-item {
+        background: #1f2937;
+        color: #f3f4f6;
+        border-color: #374151;
+    }
+}

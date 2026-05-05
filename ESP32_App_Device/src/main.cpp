@@ -2,12 +2,14 @@
 #include "wifi_Config.hpp"
 #include "mqtt_Manager.hpp"
 #include "led_Manager.hpp"
+#include "emgSensor_Manager.hpp"
 
 const int sensorPin = 34;
 
 LedManager ledManager;
 WifiConfig wifiConfig;
 MqttManager mqttManager;
+EMGSensorManager emgSensorManager(sensorPin);
 
 
 void capture_data(){
@@ -45,7 +47,7 @@ void setup() {
 }
 
 void loop() {
-  //capture_data();  TODO: review this method
   mqttManager.mqttLoop();
+  mqttManager.sendRealtimeData();  // Enviar datos en tiempo real si hay sesión activa
   delay(10); // Pequeño delay para no saturar el CPU
 }

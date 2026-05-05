@@ -539,6 +539,7 @@
         "wires": [
             [
                 "parse_mqtt",
+                "debug_raw",
                 "mqtt_emg_receiver",
                 "register_sensor"
             ]
@@ -581,7 +582,7 @@
         "type": "debug",
         "z": "flow_receiver",
         "name": "Raw MQTT",
-        "active": false,
+        "active": true,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -738,6 +739,7 @@
         "y": 100,
         "wires": [
             [
+                "debug_response",
                 "command_status_ui"
             ]
         ]
@@ -747,7 +749,7 @@
         "type": "debug",
         "z": "flow_commands",
         "name": "Response Debug",
-        "active": false,
+        "active": true,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -778,7 +780,7 @@
         "type": "function",
         "z": "flow_uibuilder",
         "name": "Handle UI Messages",
-        "func": "const topic = msg.topic;\nconst payload = msg.payload;\n\nswitch (topic) {\n    case 'session/start':\n        flow.set('activeSession', payload);\n        flow.set('emgData', []);\n        node.status({fill:'green', shape:'dot', text:'Sesión activa'});\n        // Enviar comando al ESP32\n        return [null, {topic: 'esp32/commands', payload: payload}, null];\n        \n    case 'session/stop':\n        flow.set('activeSession', null);\n        node.status({fill:'red', shape:'ring', text:'Sesión detenida'});\n        \n        // Guardar datos completos de la sesión\n        flow.set('lastSessionData', payload);\n        \n        // Validar que persona_id existe\n        if (!payload.persona_id) {\n            node.error('❌ ERROR: persona_id es null o undefined');\n            node.error('Payload completo: ' + JSON.stringify(payload));\n            return [null, null, null];\n        }\n        \n        // Preparar parámetros para insertar sesión (array para SQLite)\n        msg.params = [\n            parseInt(payload.persona_id),\n            payload.nombre || (payload.persona_nombre + ' - ' + new Date().toLocaleDateString()),\n            payload.fecha_inicio,\n            payload.fecha_fin,\n            'finalizada'\n        ];\n        \n        return [msg, null, null];\n        \n    case 'persona/new':\n        msg.params = [payload.nombre, payload.email || null, payload.telefono || null,  payload.descripcion || null];\n        return [msg, null, null];\n        \n    case 'persona/delete':\n        msg.params = [payload.id];\n        return [msg, null, null];\n        \n    case 'sensores/request':\n        // Devolver lista de sensores conectados\n        let sensores = global.get('sensores_conectados') || [];\n        if (sensores.length === 0) {\n            sensores = [\n                { id: 'ESP32_001', ip: '192.168.4.100', nombre: 'Sensor EMG 1', estado: 'desconocido' },\n                { id: 'ESP32_002', ip: '192.168.4.101', nombre: 'Sensor EMG 2', estado: 'desconocido' }\n            ];\n        }\n        return [null, null, { topic: 'sensores', payload: sensores, _uib: msg._uib }];\n        \n    case 'esp32/commands':\n        // Reenviar comando MQTT al broker\n        return [null, { topic: 'esp32/commands', payload: payload }, null];\n        \n    default:\n        return [null, null, null];\n}\n",
+        "func": "const topic = msg.topic;\nconst payload = msg.payload;\n\nswitch (topic) {\n    case 'session/start':\n        flow.set('activeSession', payload);\n        flow.set('emgData', []);\n        node.status({fill:'green', shape:'dot', text:'Sesión activa'});\n        node.warn(payload);\n        // Enviar comando al ESP32\n        return [null, {topic: 'esp32/commands', payload: payload}, null];\n        \n    case 'session/stop':\n        flow.set('activeSession', null);\n        node.status({fill:'red', shape:'ring', text:'Sesión detenida'});\n        \n        // Log para debug\n        node.warn('📥 Sesión recibida: ' + JSON.stringify(payload));\n        \n        // Guardar datos completos de la sesión\n        flow.set('lastSessionData', payload);\n        \n        // Validar que persona_id existe\n        if (!payload.persona_id) {\n            node.error('❌ ERROR: persona_id es null o undefined');\n            node.error('Payload completo: ' + JSON.stringify(payload));\n            return [null, null, null];\n        }\n        \n        // Preparar parámetros para insertar sesión (array para SQLite)\n        msg.params = [\n            parseInt(payload.persona_id),\n            payload.nombre || (payload.persona_nombre + ' - ' + new Date().toLocaleDateString()),\n            payload.fecha_inicio,\n            payload.fecha_fin,\n            'finalizada'\n        ];\n        \n        node.warn('💾 Guardando sesión con persona_id: ' + payload.persona_id);\n        node.warn('💾 Params array: ' + JSON.stringify(msg.params));\n        \n        return [msg, null, null];\n        \n    case 'persona/new':\n        msg.params = [payload.nombre, payload.email || null, payload.telefono || null,  payload.descripcion || null];\n        return [msg, null, null];\n        \n    case 'persona/delete':\n        msg.params = [payload.id];\n        return [msg, null, null];\n        \n    case 'sensores/request':\n        // Devolver lista de sensores conectados\n        let sensores = global.get('sensores_conectados') || [];\n        if (sensores.length === 0) {\n            sensores = [\n                { id: 'ESP32_001', ip: '192.168.4.100', nombre: 'Sensor EMG 1', estado: 'desconocido' },\n                { id: 'ESP32_002', ip: '192.168.4.101', nombre: 'Sensor EMG 2', estado: 'desconocido' }\n            ];\n        }\n        return [null, null, { topic: 'sensores', payload: sensores, _uib: msg._uib }];\n        \n    case 'esp32/commands':\n        // Reenviar comando MQTT al broker\n        node.warn('📤 Reenviando comando MQTT: ' + payload);\n        return [null, { topic: 'esp32/commands', payload: payload }, null];\n        \n    default:\n        return [null, null, null];\n}\n",
         "outputs": 3,
         "timeout": "",
         "noerr": 0,
@@ -917,7 +919,8 @@
         "y": 200,
         "wires": [
             [
-                "save_session"
+                "save_session",
+                "debug_before_save"
             ],
             [
                 "save_persona"
@@ -932,7 +935,7 @@
         "type": "debug",
         "z": "flow_uibuilder",
         "name": "Debug params",
-        "active": false,
+        "active": true,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -1004,7 +1007,7 @@
         "type": "function",
         "z": "flow_uibuilder",
         "name": "Prepare Stats",
-        "func": "const sessionData = flow.get('lastSessionData');\n\nif (!sessionData) {\n    node.error('No session data found');\n    return null;\n}\n\n// Obtener el ID de la sesión recién insertada\nlet sessionId;\nif (msg.payload && Array.isArray(msg.payload) && msg.payload[0] && msg.payload[0].id) {\n    sessionId = msg.payload[0].id;\n} else {\n    node.error('❌ No se pudo obtener el ID de la sesión insertada');\n    return null;\n}\n\n// Calcular duración en segundos\nconst inicio = new Date(sessionData.fecha_inicio);\nconst fin = new Date(sessionData.fecha_fin);\nconst duracion = Math.floor((fin - inicio) / 1000);\n\nmsg.params = [\n    sessionId,\n    sessionData.total_muestras || 0,\n    sessionData.emg_promedio || 0,\n    sessionData.emg_max || 0,\n    sessionData.emg_min || 0,\n    duracion\n];\n\n// Guardar para usar en el siguiente nodo\nmsg.sessionId = sessionId;\nmsg.sessionData = sessionData;\n\nreturn msg;",
+        "func": "const sessionData = flow.get('lastSessionData');\n\nif (!sessionData) {\n    node.error('No session data found');\n    return null;\n}\n\n// Log para debug\nnode.warn('📦 Payload recibido: ' + JSON.stringify(msg.payload));\n\n// Obtener el ID de la sesión recién insertada\nlet sessionId;\nif (msg.payload && Array.isArray(msg.payload) && msg.payload[0] && msg.payload[0].id) {\n    sessionId = msg.payload[0].id;\n} else {\n    node.error('❌ No se pudo obtener el ID de la sesión insertada');\n    return null;\n}\n\nnode.warn('✅ Session ID obtenido: ' + sessionId);\n\n// Calcular duración en segundos\nconst inicio = new Date(sessionData.fecha_inicio);\nconst fin = new Date(sessionData.fecha_fin);\nconst duracion = Math.floor((fin - inicio) / 1000);\n\nmsg.params = [\n    sessionId,\n    sessionData.total_muestras || 0,\n    sessionData.emg_promedio || 0,\n    sessionData.emg_max || 0,\n    sessionData.emg_min || 0,\n    duracion\n];\n\n// Guardar para usar en el siguiente nodo\nmsg.sessionId = sessionId;\nmsg.sessionData = sessionData;\n\nreturn msg;",
         "outputs": 1,
         "x": 1460,
         "y": 180,
@@ -1051,7 +1054,7 @@
         "type": "function",
         "z": "flow_uibuilder",
         "name": "Insert EMG Data (Loop)",
-        "func": "const datos = msg.datos;\nconst sessionId = msg.sessionId;\n\nif (!datos || datos.length === 0) {\n    node.warn('⚠️ No hay datos EMG para guardar');\n    return null;\n}\n\n// Crear un mensaje por cada dato EMG\nconst msgs = [];\n\nfor (const dato of datos) {\n    msgs.push({\n        params: [\n            dato.sesion_id,\n            dato.emg_value,\n            dato.raw_value,\n            dato.voltage,\n            dato.timestamp_device\n        ],\n        sessionId: sessionId,\n        totalDatos: datos.length\n    });\n}\n\nreturn [msgs];",
+        "func": "const datos = msg.datos;\nconst sessionId = msg.sessionId;\n\nif (!datos || datos.length === 0) {\n    node.warn('⚠️ No hay datos EMG para guardar');\n    return null;\n}\n\nnode.warn(`📊 Insertando ${datos.length} datos EMG uno por uno...`);\n\n// Crear un mensaje por cada dato EMG\nconst msgs = [];\n\nfor (const dato of datos) {\n    msgs.push({\n        params: [\n            dato.sesion_id,\n            dato.emg_value,\n            dato.raw_value,\n            dato.voltage,\n            dato.timestamp_device\n        ],\n        sessionId: sessionId,\n        totalDatos: datos.length\n    });\n}\n\nreturn [msgs];",
         "outputs": 1,
         "x": 1900,
         "y": 180,
