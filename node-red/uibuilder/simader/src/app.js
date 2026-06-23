@@ -46,6 +46,9 @@ document.addEventListener('DOMContentLoaded', () => {
     loadLocalData();
     initUIBuilder();
     initModal();
+    initModoEjercicio();
+    initWebcam();
+    initCV();
 
     // Esperar a que Chart.js esté disponible
     if (typeof Chart !== 'undefined') {
@@ -420,6 +423,13 @@ function iniciarSesion() {
 
     showToast('Sesión Iniciada', `Capturando datos de ${app.sesionActiva.persona_nombre}`, 'success');
 
+    // Iniciar timer de sesión y resetear adaptaciones
+    startSessionTimer();
+    resetAdaptaciones();
+    // Capturar los valores elegidos por el usuario como punto de partida
+    ejercicioMode.effectiveReps = parseInt(document.getElementById('targetReps')?.value || '0');
+    ejercicioMode.effectiveTime = parseInt(document.getElementById('targetTime')?.value || '0');
+
     // Limpiar estadísticas y gráfico de tiempo real
     resetStats();
     clearModalChart();
@@ -469,6 +479,8 @@ function detenerSesion() {
             payload: app.sesionActiva
         });
     }
+
+    stopSessionTimer();
 
     showToast('Sesión Finalizada',
         `${app.sesionActiva.total_muestras} muestras - Promedio: ${app.sesionActiva.emg_promedio.toFixed(4)}`,
@@ -1540,6 +1552,9 @@ function updateFatigaUI() {
     // Actualizar texto
     text.textContent = `${fatiga.fatigaIndex.toFixed(0)}%`;
 
+    // Comprobar si hay que adaptar los objetivos
+    checkAdaptation(fatiga.fatigaIndex);
+
     // Actualizar valores de debug
     if (fatiga.debugInfo) {
         const debug = fatiga.debugInfo;
@@ -1813,6 +1828,572 @@ function cancelarCalibracion() {
     stopCalibrationPolling();
     app.modalCalibracion.hide();
     showToast('Calibración Cancelada', '', 'warning');
+}
+
+// ===================================
+// ===================================
+// MODO DE EJERCICIO
+// ===================================
+
+const ejercicioMode = {
+    mode: 'adaptativo',
+    lastAdaptation: 0,
+    COOLDOWN: 15000,       // mínimo 15s entre adaptaciones
+    HIGH_THRESHOLD: 65,    // % fatiga para activar
+    adaptationCount: 0,
+    // Valores efectivos internos (independientes de los escalones del select)
+    effectiveReps: 0,      // 0 = sin límite
+    effectiveTime: 0,      // 0 = sin límite
+    REPS_STEP: 1,          // bajar 1 rep por adaptación
+    TIME_STEP: 15,         // subir 15 segundos por adaptación
+    MIN_REPS: 3,           // mínimo de reps permitido
+};
+
+function initModoEjercicio() {
+    document.querySelectorAll('input[name="modoEjercicio"]').forEach(radio => {
+        radio.addEventListener('change', e => {
+            ejercicioMode.mode = e.target.value;
+            if (ejercicioMode.mode === 'estricto') {
+                showToast('Modo Estricto', 'Reps y tiempo fijos durante toda la sesión', 'info');
+            } else {
+                showToast('Modo Adaptativo', 'Los objetivos se ajustarán según la fatiga muscular detectada', 'info');
+            }
+        });
+    });
+}
+
+function checkAdaptation(fatigaIndex) {
+    if (ejercicioMode.mode !== 'adaptativo') return;
+    if (!app.sesionActiva) return;
+
+    const now = Date.now();
+    if (now - ejercicioMode.lastAdaptation < ejercicioMode.COOLDOWN) return;
+    if (fatigaIndex < ejercicioMode.HIGH_THRESHOLD) return;
+
+    ejercicioMode.lastAdaptation = now;
+    ejercicioMode.adaptationCount++;
+
+    const cambios = [];
+
+    // --- REPS: bajar 1 rep por adaptación ---
+    if (ejercicioMode.effectiveReps > 0) {
+        const prev = ejercicioMode.effectiveReps;
+        ejercicioMode.effectiveReps = Math.max(ejercicioMode.MIN_REPS, prev - ejercicioMode.REPS_STEP);
+        if (ejercicioMode.effectiveReps !== prev) {
+            cambios.push(`Reps ${prev} → ${ejercicioMode.effectiveReps}`);
+            // Actualizar el select al valor más cercano por debajo
+            syncSelectToValue(document.getElementById('targetReps'), ejercicioMode.effectiveReps, 'down');
+        }
+    }
+
+    // --- TIEMPO: subir 15s por adaptación ---
+    if (ejercicioMode.effectiveTime > 0) {
+        const prev = ejercicioMode.effectiveTime;
+        ejercicioMode.effectiveTime = prev + ejercicioMode.TIME_STEP;
+        cambios.push(`Tiempo ${formatTime(prev)} → ${formatTime(ejercicioMode.effectiveTime)}`);
+        // Actualizar el select al valor más cercano por arriba
+        syncSelectToValue(document.getElementById('targetTime'), ejercicioMode.effectiveTime, 'up');
+    }
+
+    if (cambios.length === 0) return;
+
+    updateRepsGoalDisplay();
+    flashTimerValues();
+
+    const logEl  = document.getElementById('adaptacionLog');
+    const textEl = document.getElementById('adaptacionLogText');
+    const badge  = document.getElementById('adaptacionBadge');
+    if (logEl && textEl && badge) {
+        logEl.classList.remove('d-none');
+        textEl.textContent = `#${ejercicioMode.adaptationCount} — Fatiga ${fatigaIndex.toFixed(0)}%: ${cambios.join(' | ')}`;
+        badge.textContent  = ejercicioMode.adaptationCount;
+    }
+
+    showToast(`Adaptación #${ejercicioMode.adaptationCount}`,
+        `Fatiga alta (${fatigaIndex.toFixed(0)}%). ${cambios.join(' | ')}`, 'warning');
+}
+
+// Sincroniza el select al valor disponible más cercano (sin cambiar el valor efectivo interno)
+function syncSelectToValue(selectEl, targetValue, direction) {
+    if (!selectEl) return;
+    const values = Array.from(selectEl.options)
+        .map(o => parseInt(o.value))
+        .filter(v => v > 0)
+        .sort((a, b) => a - b);
+
+    let chosen;
+    if (direction === 'down') {
+        chosen = [...values].reverse().find(v => v <= targetValue) ?? values[0];
+    } else {
+        chosen = values.find(v => v >= targetValue) ?? values[values.length - 1];
+    }
+    selectEl.value = chosen;
+}
+
+function resetAdaptaciones() {
+    ejercicioMode.lastAdaptation = 0;
+    ejercicioMode.adaptationCount = 0;
+    ejercicioMode.effectiveReps = 0;
+    ejercicioMode.effectiveTime = 0;
+    const logEl = document.getElementById('adaptacionLog');
+    if (logEl) logEl.classList.add('d-none');
+}
+
+// ===================================
+// TIMER DE SESIÓN
+// ===================================
+
+const sessionTimer = {
+    interval: null,
+    startTime: null
+};
+
+function startSessionTimer() {
+    sessionTimer.startTime = Date.now();
+
+    const timerRow = document.getElementById('sessionTimerRow');
+    timerRow.classList.remove('d-none');
+
+    // Inicializar countdown con el objetivo de tiempo seleccionado
+    updateCountdownDisplay();
+
+    // Inicializar display de reps objetivo
+    updateRepsGoalDisplay();
+
+    if (sessionTimer.interval) clearInterval(sessionTimer.interval);
+    sessionTimer.interval = setInterval(tickTimer, 1000);
+    tickTimer();
+}
+
+function stopSessionTimer() {
+    if (sessionTimer.interval) {
+        clearInterval(sessionTimer.interval);
+        sessionTimer.interval = null;
+    }
+    document.getElementById('sessionTimerRow').classList.add('d-none');
+    document.getElementById('sessionTimerDisplay').textContent = '00:00';
+    document.getElementById('sessionCountdown').textContent = '--:--';
+    document.getElementById('sessionCountdown').className = 'session-timer font-monospace';
+    document.getElementById('sessionCountdown').classList.remove('timer-warning');
+}
+
+function tickTimer() {
+    const elapsed = Math.floor((Date.now() - sessionTimer.startTime) / 1000);
+    document.getElementById('sessionTimerDisplay').textContent = formatTime(elapsed);
+
+    const targetSecs  = parseInt(document.getElementById('targetTime')?.value || '0');
+    const countdownEl = document.getElementById('sessionCountdown');
+
+    if (targetSecs > 0) {
+        const remaining = targetSecs - elapsed;
+        if (remaining <= 0) {
+            countdownEl.textContent = '00:00';
+            setCountdownColor(countdownEl, 'danger');
+            if (remaining === 0) {
+                showToast('¡Tiempo completado!', `Objetivo de ${formatTime(targetSecs)} alcanzado`, 'success');
+            }
+        } else {
+            countdownEl.textContent = formatTime(remaining);
+            if (remaining <= 10) {
+                setCountdownColor(countdownEl, 'danger');
+            } else if (remaining <= 30) {
+                setCountdownColor(countdownEl, 'warning');
+            } else {
+                setCountdownColor(countdownEl, 'normal');
+            }
+        }
+    } else {
+        countdownEl.textContent = '--:--';
+        setCountdownColor(countdownEl, 'none');
+    }
+}
+
+function setCountdownColor(el, state) {
+    // Mientras el flash esté activo no tocamos los colores
+    if (el.dataset.flashing) return;
+
+    el.classList.remove('timer-normal', 'timer-caution', 'timer-urgent', 'timer-warning');
+    el.style.color = ''; // limpiar cualquier inline residual
+
+    const map = { danger: 'timer-urgent', warning: 'timer-caution', normal: 'timer-normal', none: 'timer-normal' };
+    el.classList.add(map[state] ?? 'timer-normal');
+    if (state === 'danger') el.classList.add('timer-warning'); // mantiene el pulso al llegar a 0
+}
+
+function updateCountdownDisplay() {
+    // Si hay sesión activa, muestra el tiempo restante real; si no, el objetivo completo
+    const targetSecs  = parseInt(document.getElementById('targetTime')?.value || '0');
+    const countdownEl = document.getElementById('sessionCountdown');
+    if (targetSecs <= 0) {
+        countdownEl.textContent = '--:--';
+        countdownEl.className = 'fw-bold font-monospace';
+        return;
+    }
+    if (sessionTimer.startTime) {
+        const elapsed   = Math.floor((Date.now() - sessionTimer.startTime) / 1000);
+        const remaining = Math.max(0, targetSecs - elapsed);
+        countdownEl.textContent = formatTime(remaining);
+    } else {
+        countdownEl.textContent = formatTime(targetSecs);
+    }
+    countdownEl.className = 'fw-bold font-monospace text-light';
+}
+
+// Parpadeo naranja en los valores del timer cuando hay una adaptación.
+// Usamos style inline para ganar siempre a las clases de Bootstrap.
+function flashTimerValues() {
+    ['sessionCountdown', 'repsGoalDisplay'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+
+        el.dataset.flashing = '1';
+
+        anime({
+            targets: el,
+            color: ['#e2e8f0', '#f59e0b', '#fbbf24', '#e2e8f0'],
+            duration: 700,
+            easing: 'easeInOutSine',
+            complete: () => {
+                el.style.color = ''; // limpiar inline para que las clases CSS tomen el control
+                delete el.dataset.flashing;
+            }
+        });
+    });
+}
+
+function updateRepsGoalDisplay() {
+    const targetReps = parseInt(document.getElementById('targetReps')?.value || '0');
+    const container  = document.getElementById('repsGoalContainer');
+    const divider    = document.getElementById('repsGoalDivider');
+    if (targetReps > 0) {
+        container.classList.remove('d-none');
+        if (divider) divider.classList.remove('d-none');
+        document.getElementById('repsGoalDisplay').textContent = `${cvState.repCount}/${targetReps}`;
+    } else {
+        container.classList.add('d-none');
+        if (divider) divider.classList.add('d-none');
+    }
+}
+
+function formatTime(seconds) {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+}
+
+// ===================================
+// WEBCAM
+// ===================================
+
+const webcam = {
+    stream: null,
+    flipped: false
+};
+
+function initWebcam() {
+    document.getElementById('btnActivarWebcam').addEventListener('click', startWebcam);
+    document.getElementById('btnDesactivarWebcam').addEventListener('click', stopWebcam);
+    document.getElementById('btnFlipWebcam').addEventListener('click', flipWebcam);
+    document.getElementById('modalSesion').addEventListener('hidden.bs.modal', stopWebcam);
+}
+
+async function startWebcam() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showToast('Webcam no disponible', 'Tu navegador no soporta acceso a la cámara', 'danger');
+        return;
+    }
+    try {
+        webcam.stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        const video = document.getElementById('webcamVideo');
+        video.srcObject = webcam.stream;
+
+        document.getElementById('webcamPlaceholder').classList.add('d-none');
+        document.getElementById('webcamWrapper').classList.remove('d-none');
+        const controls = document.getElementById('webcamControls');
+        controls.classList.remove('d-none');
+        controls.classList.add('d-flex');
+    } catch (err) {
+        const msg = err.name === 'NotAllowedError'
+            ? 'Permiso denegado. Permite el acceso a la cámara en el navegador.'
+            : 'No se pudo acceder a la cámara: ' + err.message;
+        showToast('Error de cámara', msg, 'danger');
+    }
+}
+
+function stopWebcam() {
+    stopTracking();
+
+    if (webcam.stream) {
+        webcam.stream.getTracks().forEach(t => t.stop());
+        webcam.stream = null;
+    }
+
+    const video = document.getElementById('webcamVideo');
+    if (video) { video.srcObject = null; }
+
+    webcam.flipped = false;
+    document.getElementById('webcamWrapper').classList.add('d-none');
+    document.getElementById('webcamPlaceholder').classList.remove('d-none');
+
+    const controls = document.getElementById('webcamControls');
+    controls.classList.add('d-none');
+    controls.classList.remove('d-flex');
+}
+
+function flipWebcam() {
+    webcam.flipped = !webcam.flipped;
+    document.getElementById('webcamVideo').classList.toggle('flipped', webcam.flipped);
+    document.getElementById('cvCanvas').classList.toggle('flipped', webcam.flipped);
+}
+
+// ===================================
+// VISIÓN POR COMPUTADOR - POSE TRACKING
+// ===================================
+
+const cvState = {
+    pose: null,
+    tracking: false,
+    animFrame: null,
+    targetY: null,       // 0-1 normalizado (null = no fijado)
+    repCount: 0,
+    repState: 'below',   // 'above' | 'below'
+    landmarkIdx: 16,     // índice MediaPipe Pose
+    lastY: null,
+    HYSTERESIS: 0.04     // margen para evitar doble conteo
+};
+
+function initCV() {
+    document.getElementById('btnIniciarTracking').addEventListener('click', startTracking);
+    document.getElementById('btnPararTracking').addEventListener('click', stopTracking);
+    document.getElementById('btnFijarObjetivo').addEventListener('click', setTargetFromLandmark);
+    document.getElementById('btnResetReps').addEventListener('click', resetReps);
+    document.getElementById('selectLandmark').addEventListener('change', e => {
+        cvState.landmarkIdx = parseInt(e.target.value);
+    });
+    document.getElementById('cvCanvas').addEventListener('click', setTargetFromClick);
+}
+
+async function startTracking() {
+    if (!webcam.stream) {
+        showToast('Cámara requerida', 'Activa la cámara antes de iniciar el tracking', 'warning');
+        return;
+    }
+
+    if (!cvState.pose) {
+        showToast('Cargando modelo...', 'Inicializando MediaPipe Pose...', 'info');
+        try {
+            await loadPoseModel();
+        } catch (e) {
+            console.error('[CV] Error cargando modelo:', e);
+            showToast('Error al cargar modelo', String(e.message || e), 'danger');
+            return;
+        }
+    }
+
+    cvState.tracking = true;
+    cvState.repCount = 0;
+    cvState.repState = 'below';
+    cvState.targetY = null;
+    cvState.lastY = null;
+    updateRepDisplay();
+
+    document.getElementById('cvPanel').classList.remove('d-none');
+    document.getElementById('btnIniciarTracking').classList.add('d-none');
+
+    runTrackingLoop();
+}
+
+function stopTracking() {
+    if (!cvState.tracking && cvState.animFrame === null) return;
+
+    cvState.tracking = false;
+    if (cvState.animFrame) {
+        cancelAnimationFrame(cvState.animFrame);
+        cvState.animFrame = null;
+    }
+
+    const canvas = document.getElementById('cvCanvas');
+    if (canvas) {
+        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    document.getElementById('cvPanel').classList.add('d-none');
+    document.getElementById('btnIniciarTracking').classList.remove('d-none');
+}
+
+function loadPoseModel() {
+    return new Promise((resolve, reject) => {
+        if (typeof Pose === 'undefined') {
+            reject(new Error('El script pose.js no está cargado'));
+            return;
+        }
+        // URL absoluta basada en la página actual para evitar problemas de ruta.
+        // Forzamos la versión no-SIMD para evitar el requisito de SharedArrayBuffer
+        // (que el navegador bloquea sin cabeceras COOP/COEP especiales).
+        const base = window.location.href.replace(/\/[^/]*$/, '/');
+        const pose = new Pose({
+            locateFile: file => {
+                const safeFile = file.replace('simd_wasm_bin', 'wasm_bin');
+                return `${base}mediapipe/${safeFile}`;
+            }
+        });
+        pose.setOptions({
+            modelComplexity: 1,
+            smoothLandmarks: true,
+            enableSegmentation: false,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+        pose.onResults(processResults);
+        pose.initialize().then(() => {
+            cvState.pose = pose;
+            resolve();
+        }).catch(reject);
+    });
+}
+
+function runTrackingLoop() {
+    if (!cvState.tracking) return;
+
+    const video = document.getElementById('webcamVideo');
+    const canvas = document.getElementById('cvCanvas');
+
+    if (video && canvas && cvState.pose && video.readyState >= 2) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        cvState.pose.send({ image: video });
+    }
+
+    cvState.animFrame = requestAnimationFrame(runTrackingLoop);
+}
+
+function processResults(results) {
+    const canvas = document.getElementById('cvCanvas');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (!results.poseLandmarks) return;
+
+    const lm = results.poseLandmarks[cvState.landmarkIdx];
+    if (!lm || lm.visibility < 0.4) return;
+
+    const x = lm.x * canvas.width;
+    const y = lm.y * canvas.height;
+
+    // Dibujar punto rastreado
+    ctx.beginPath();
+    ctx.arc(x, y, 12, 0, 2 * Math.PI);
+    ctx.fillStyle = 'rgba(59, 130, 246, 0.85)';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Dibujar línea objetivo
+    if (cvState.targetY !== null) {
+        const targetPx = cvState.targetY * canvas.height;
+        const reached = lm.y < cvState.targetY;
+
+        ctx.setLineDash([12, 6]);
+        ctx.beginPath();
+        ctx.moveTo(0, targetPx);
+        ctx.lineTo(canvas.width, targetPx);
+        ctx.strokeStyle = reached ? 'rgba(74, 222, 128, 0.9)' : 'rgba(250, 204, 21, 0.9)';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Etiqueta objetivo
+        ctx.fillStyle = reached ? 'rgba(74, 222, 128, 0.9)' : 'rgba(250, 204, 21, 0.9)';
+        ctx.font = 'bold 13px Inter, sans-serif';
+        ctx.fillText('OBJETIVO', 8, targetPx - 7);
+
+        countRep(lm.y);
+    }
+
+    cvState.lastY = lm.y;
+}
+
+function countRep(currentY) {
+    const { targetY, repState, HYSTERESIS } = cvState;
+    if (targetY === null) return;
+
+    if (repState === 'below' && currentY < targetY) {
+        cvState.repCount++;
+        cvState.repState = 'above';
+        updateRepDisplay();
+        flashRepCounter();
+
+        const targetReps = parseInt(document.getElementById('targetReps')?.value || '0');
+        if (targetReps > 0) {
+            // Actualizar display reps en el timer
+            document.getElementById('repsGoalDisplay').textContent = `${cvState.repCount}/${targetReps}`;
+
+            // Actualizar barra de progreso
+            const pct = Math.min(100, (cvState.repCount / targetReps) * 100);
+            document.getElementById('repsProgressBar').classList.remove('d-none');
+            document.getElementById('repsProgressFill').style.width = `${pct}%`;
+
+            // Objetivo alcanzado
+            if (cvState.repCount >= targetReps) {
+                showToast('¡Objetivo alcanzado!', `Has completado ${cvState.repCount} repeticiones`, 'success');
+                document.getElementById('repsProgressFill').classList.remove('bg-info');
+                document.getElementById('repsProgressFill').classList.add('bg-success');
+            }
+        }
+    } else if (repState === 'above' && currentY > targetY + HYSTERESIS) {
+        cvState.repState = 'below';
+    }
+}
+
+function setTargetFromLandmark() {
+    if (cvState.lastY === null) {
+        showToast('Sin detección', 'El cuerpo no es visible en la cámara', 'warning');
+        return;
+    }
+    cvState.targetY = cvState.lastY;
+    cvState.repState = 'below';
+    showToast('Objetivo fijado', 'Sube el punto por encima de la línea amarilla para contar repeticiones', 'success');
+}
+
+function setTargetFromClick(e) {
+    if (!cvState.tracking) return;
+    const canvas = document.getElementById('cvCanvas');
+    const rect = canvas.getBoundingClientRect();
+    cvState.targetY = (e.clientY - rect.top) / rect.height;
+    cvState.repState = 'below';
+    showToast('Objetivo fijado', 'Sube el punto por encima de la línea amarilla para contar', 'success');
+}
+
+function resetReps() {
+    cvState.repCount = 0;
+    cvState.repState = 'below';
+    cvState.targetY = null;
+    updateRepDisplay();
+
+    const bar = document.getElementById('repsProgressBar');
+    if (bar) bar.classList.add('d-none');
+    const fill = document.getElementById('repsProgressFill');
+    if (fill) { fill.style.width = '0%'; fill.className = 'progress-bar bg-info'; }
+    const goal = document.getElementById('repsGoalDisplay');
+    const targetReps = parseInt(document.getElementById('targetReps')?.value || '0');
+    if (goal && targetReps > 0) goal.textContent = `0/${targetReps}`;
+}
+
+function updateRepDisplay() {
+    const el = document.getElementById('repCount');
+    if (el) el.textContent = cvState.repCount;
+}
+
+function flashRepCounter() {
+    const el = document.getElementById('repCount');
+    if (!el) return;
+    el.classList.remove('rep-flash');
+    void el.offsetWidth; // reflow para reiniciar animación
+    el.classList.add('rep-flash');
+    setTimeout(() => el.classList.remove('rep-flash'), 400);
 }
 
 // Exponer funciones globales
