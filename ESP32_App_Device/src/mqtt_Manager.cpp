@@ -6,6 +6,12 @@ extern LedManager ledManager;
 extern EMGSensorManager emgSensorManager;
 extern MqttManager mqttManager;
 
+static void blinkTaskFn(void* param) {
+    uint32_t color = (uint32_t)(uintptr_t)param;
+    ledManager.blinkNeoPixel(color, 0, 500);
+    vTaskDelete(nullptr);
+}
+
 MqttManager::MqttManager() : mqttClient(espWifi), _sessionActive(false), _lastSendTime(0) {
 
 }
@@ -44,11 +50,15 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
                     Serial.printf("[MQTT_MANAGER][RESPONSE] Sending data response: %s\n", response.c_str());
                 }else if(command == "Calibrate") {
                     emgSensorManager.startCalibration();
-                    ledManager.blinkNeoPixel(CYAN_COLOR, 3, 300);
+                    xTaskCreate(blinkTaskFn, "blinkCalibTask", 1024, (void*)(uintptr_t)CYAN_COLOR, 1, mqttManager.getBlinkTaskHandle());
                     response = myIP + ":Calibration_Started";
                     Serial.printf("[MQTT_MANAGER][RESPONSE] Calibration started: %s\n", response.c_str());
                 }else if(command == "CalibrationStatus") {
                     std::string statusJson = emgSensorManager.getCalibrationStatus();
+                    if (!emgSensorManager.isCalibrating()) {
+                        ledManager.stopBlink();
+                        mqttManager.clearBlinkTaskHandle();
+                    }
                     response = myIP + ":Calibration_Status_" + statusJson;
                     Serial.printf("[MQTT_MANAGER][RESPONSE] Calibration status: %s\n", response.c_str());
                 }else if(command == "Check") {
@@ -75,7 +85,7 @@ int MqttManager::connectToMQTTBroker(std::string mqttServer, int mqttPort = 1883
     while (!mqttClient.connected() && tries < MAX_MQTT_CONNECTION_ATTEMPTS) {
         if (mqttClient.connect("ESP32Client-EMG_Device")) {
             Serial.println("\n[MQTT_MANAGER][INFO] Connected to the MQTT Broker.");
-            mqttClient.subscribe("esp32/commands");
+            mqttClient.subscribe("esp32/commands", 1);
             Serial.println("[MQTT_MANAGER][INFO] Subscribed to esp32/commands");
             return 1;
         } else {
@@ -95,11 +105,14 @@ void MqttManager::mqttLoop() {
 void MqttManager::startRealtimeSession() {
     _sessionActive = true;
     _lastSendTime = millis();
+    xTaskCreate(blinkTaskFn, "blinkTask", 1024, (void*)(uintptr_t)GREEN_COLOR, 1, &_blinkTaskHandle);
     Serial.println("[MQTT_MANAGER][INFO] Sesión en tiempo real iniciada");
 }
 
 void MqttManager::stopRealtimeSession() {
     _sessionActive = false;
+    ledManager.stopBlink();
+    _blinkTaskHandle = nullptr;
     Serial.println("[MQTT_MANAGER][INFO] Sesión en tiempo real detenida");
 }
 

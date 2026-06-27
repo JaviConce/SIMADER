@@ -57,7 +57,7 @@ void MqttManager::connectBroker(std::string mqttBroker) {
     while(!client.connected()){
         Serial.print("[MQTT_MANAGER][INFO] Connecting to the MQTT broker...\n");
         if(client.connect("ESP32ManagerClient")){
-            client.subscribe("esp32/responses");
+            client.subscribe("esp32/responses", 1);
             Serial.println("[MQTT_MANAGER][INFO] Subscribed to esp32/data and esp32/responses");
         } else {
             Serial.printf("[MQTT_MANAGER][ERROR] Failure, rc=%d. Retrying in 2 seconds...\n", client.state());
@@ -134,8 +134,8 @@ void MqttManager::handleMQTTClient() {
     if(!client.connected()) {
         Serial.println("[MQTT_MANAGER][WARNING] MQTT client disconnected, reconnecting...");
         if(client.connect("ESP32ManagerClient")) {
-            client.subscribe("esp32/data");
-            client.subscribe("esp32/responses");
+            client.subscribe("esp32/data", 1);
+            client.subscribe("esp32/responses", 1);
             Serial.println("[MQTT_MANAGER][INFO] MQTT client reconnected");
         }
     }

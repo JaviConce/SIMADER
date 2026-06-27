@@ -14,6 +14,8 @@ public:
     int connectToMQTTBroker(std::string mqttServer, int mqttPort);
     void mqttLoop();
     PubSubClient* getMqttClient() { return &mqttClient; }
+    TaskHandle_t* getBlinkTaskHandle() { return &_blinkTaskHandle; }
+    void clearBlinkTaskHandle() { _blinkTaskHandle = nullptr; }
 
     // Métodos para sesión en tiempo real
     void startRealtimeSession();
@@ -29,6 +31,7 @@ private:
     // Estado de sesión en tiempo real
     bool _sessionActive;
     unsigned long _lastSendTime;
+    TaskHandle_t _blinkTaskHandle = nullptr;
 };
 
 #endif // MQTT_MANAGER_HPP

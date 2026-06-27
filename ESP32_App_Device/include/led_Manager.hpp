@@ -21,5 +21,8 @@ public:
     LedManager();
     void initNeoPixel();
     void blinkNeoPixel(uint32_t color, int times, int delayMs);
+    void stopBlink();
+
+    volatile bool _blinking = false;
 
 };
