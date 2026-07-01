@@ -75,3 +75,4 @@ std::vector<ClientInfo> MQTTBroker::getConnectedClients() {
     }
     return result;
 }
+

@@ -1,8 +1,6 @@
 
 #include "wifi_Config.hpp"
 
-std::vector<ClientAttemps> clientList;
-
 
 void onStationConnected(WiFiEvent_t event, WiFiEventInfo_t info) {
     char macStr[18];
@@ -52,10 +50,7 @@ int startWiFi_Hotspot() {
         }
         tries++;
     }
-    if (!create_success) {
-        Serial.printf("\n[WIFI_CONFIG][ERROR] Error creating the WiFi access point after %i attempts .\n", MAX_CREATION_ATTEMPTS);
-        return 0;
-    }
+    Serial.printf("\n[WIFI_CONFIG][ERROR] Error creating the WiFi access point after %i attempts.\n", MAX_CREATION_ATTEMPTS);
     return 0;
 }
 

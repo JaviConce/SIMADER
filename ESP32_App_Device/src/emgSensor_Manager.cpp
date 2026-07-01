@@ -1,4 +1,5 @@
 #include "emgSensor_Manager.hpp"
+#include "config.hpp"
 
 EMGSensorManager::EMGSensorManager(int pin)
     : _pin(pin),
@@ -7,7 +8,7 @@ EMGSensorManager::EMGSensorManager(int pin)
       _calibrated(false),
       _isCalibrating(false),
       _baseline(0.0),
-      _maxValue(4095.0), // Default max for 12-bit ADC
+      _maxValue(EMG_ADC_MAX_VALUE),
       _calibrationPhase(0),
       _calibrationStartTime(0) {
     pinMode(_pin, INPUT);
@@ -130,13 +131,28 @@ void EMGSensorManager::startCalibration() {
     Serial.println("[EMG_MANAGER] Phase 0: RESTING - Relax muscle completely (10 seconds)");
 }
 
+void EMGSensorManager::cancelCalibration() {
+    if (!_isCalibrating) return;
+
+    _isCalibrating = false;
+    _calibrationPhase = 0;
+    _calibrationSamples.clear();
+
+    if (_samplingTaskHandle != NULL) {
+        vTaskDelete(_samplingTaskHandle);
+        _samplingTaskHandle = NULL;
+    }
+
+    Serial.println("[EMG_MANAGER] Calibration cancelled");
+}
+
 void EMGSensorManager::processCalibrationData() {
     if (_calibrationSamples.empty()) return;
 
     unsigned long elapsed = millis() - _calibrationStartTime;
 
     // Phase 0: Baseline (reposo) - 10 segundos
-    if (_calibrationPhase == 0 && elapsed >= 10000) {
+    if (_calibrationPhase == 0 && elapsed >= CALIB_PHASE0_DURATION_MS) {
         // Calculate baseline
         long sum = 0;
         for (int s : _calibrationSamples) sum += s;
@@ -151,7 +167,7 @@ void EMGSensorManager::processCalibrationData() {
         _calibrationSamples.clear();
     }
     // Phase 1: Maximum value (contracción máxima) - 5 segundos
-    else if (_calibrationPhase == 1 && elapsed >= 5000) {
+    else if (_calibrationPhase == 1 && elapsed >= CALIB_PHASE1_DURATION_MS) {
         // Calculate max value
         _maxValue = 0;
         for (int s : _calibrationSamples) {
@@ -161,7 +177,7 @@ void EMGSensorManager::processCalibrationData() {
         Serial.printf("[EMG_MANAGER] Maximum value captured: %.2f\n", _maxValue);
 
         // Validate calibration
-        if (_maxValue > _baseline + 100) { // At least 100 units difference
+        if (_maxValue > _baseline + CALIB_MIN_RANGE) {
             _calibrated = true;
             Serial.println("[EMG_MANAGER] ✅ Calibration SUCCESSFUL");
             Serial.printf("[EMG_MANAGER] Range: %.2f - %.2f\n", _baseline, _maxValue);
@@ -178,6 +194,15 @@ void EMGSensorManager::processCalibrationData() {
         }
         _calibrationSamples.clear();
     }
+}
+
+float EMGSensorManager::getCurrentValue() const {
+    int raw = analogRead(_pin);
+    if (!_calibrated) return (float)raw;
+    float normalized = (raw - _baseline) / (_maxValue - _baseline);
+    if (normalized < 0.0f) normalized = 0.0f;
+    if (normalized > 1.0f) normalized = 1.0f;
+    return normalized;
 }
 
 float EMGSensorManager::normalizeValue(int rawValue) {

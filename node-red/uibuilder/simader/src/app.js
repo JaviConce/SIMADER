@@ -1,9 +1,3 @@
-// ===================================
-// SIMADER - App JavaScript
-// Bootstrap 5 + UIBuilder + Chart.js
-// ===================================
-
-// Estado de la aplicación
 const app = {
     sesionActiva: null,
     personas: [],
@@ -12,33 +6,27 @@ const app = {
     chartEMG: null,
     chartModalRealTime: null,
     connected: false,
-    sesionesEnGrafico: [], // Sesiones actualmente mostradas en el gráfico
-    modoGrafico: 'medias', // 'medias' o 'detalle'
+    sesionesEnGrafico: [],
+    modoGrafico: 'medias',
     modalSesion: null,
     modalCalibracion: null,
     modalRealtimeData: [],
-    maxRealtimePoints: 100, // Máximo de puntos en el gráfico de tiempo real
-    connectionCheckInterval: null, // Intervalo para verificar conexión
-    lastMessageTime: null, // Timestamp del último mensaje recibido
+    maxRealtimePoints: 100,
+    connectionCheckInterval: null,
+    lastMessageTime: null,
     calibracionActiva: false,
     calibracionInterval: null,
-    calibracionStartTime: null,
     sensorActual: null,
-    // Variables para detección de fatiga muscular
     fatigaData: {
-        baseline: [], // Primeros 20 valores para referencia
+        baseline: [],
         baselineSet: false,
         rmsBaseline: 0,
-        windowSize: 20, // Ventana deslizante para análisis
+        windowSize: 20,
         currentWindow: [],
-        fatigaIndex: 0, // 0-100, donde 0 = sin fatiga, 100 = fatiga máxima
-        trend: 'estable' // 'estable', 'incrementando', 'alta'
+        fatigaIndex: 0,
+        trend: 'estable'
     }
 };
-
-// ===================================
-// INICIALIZACIÓN
-// ===================================
 
 document.addEventListener('DOMContentLoaded', () => {
     initNavigation();
@@ -50,7 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initWebcam();
     initCV();
 
-    // Esperar a que Chart.js esté disponible
     if (typeof Chart !== 'undefined') {
         initChart();
         initModalChart();
@@ -59,20 +46,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Inicializar UIBuilder
 function initUIBuilder() {
     if (typeof uibuilder !== 'undefined') {
         uibuilder.start();
 
-        // Verificar estado inicial de conexión
-        setTimeout(() => {
-            checkConnection();
-        }, 500);
+        setTimeout(() => { checkConnection(); }, 500);
 
-        // Comprobar conexión periódicamente cada 3 segundos
-        app.connectionCheckInterval = setInterval(() => {
-            checkConnection();
-        }, 3000);
+        app.connectionCheckInterval = setInterval(() => { checkConnection(); }, 3000);
 
         uibuilder.onChange('isConnected', (connected) => {
             app.connected = connected;
@@ -83,35 +63,21 @@ function initUIBuilder() {
             handleMessage(msg);
         });
     } else {
-        console.log('UIBuilder no disponible - modo standalone');
-        // Cargar datos de prueba en modo standalone
         loadTestData();
     }
 }
 
-// Verificar estado de conexión
 function checkConnection() {
     if (typeof uibuilder !== 'undefined') {
         const isConnected = uibuilder.get('isConnected');
-        const now = Date.now();
-
-        // Considerar conectado si:
-        // 1. UIBuilder reporta conexión, O
-        // 2. Hemos recibido mensajes en los últimos 10 segundos
-        const hasRecentMessages = app.lastMessageTime && (now - app.lastMessageTime < 10000);
+        const hasRecentMessages = app.lastMessageTime && (Date.now() - app.lastMessageTime < 10000);
         const shouldBeConnected = isConnected || hasRecentMessages;
-
-        // Solo actualizar si hay un cambio de estado
         if (shouldBeConnected !== app.connected) {
             app.connected = shouldBeConnected;
             updateConnectionStatus(shouldBeConnected);
         }
     }
 }
-
-// ===================================
-// NAVEGACIÓN
-// ===================================
 
 function initNavigation() {
     document.querySelectorAll('[data-page]').forEach(link => {
@@ -120,7 +86,6 @@ function initNavigation() {
             const page = e.currentTarget.dataset.page;
             showPage(page);
 
-            // Actualizar nav activo
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
             e.currentTarget.classList.add('active');
         });
@@ -133,7 +98,6 @@ function showPage(pageName) {
     });
     document.getElementById(`page-${pageName}`).classList.remove('d-none');
 
-    // Refrescar datos según la página
     if (pageName === 'historial') {
         renderHistorial();
         renderPersonasHistorialSelect();
@@ -141,10 +105,6 @@ function showPage(pageName) {
         renderPersonas();
     }
 }
-
-// ===================================
-// CONEXIÓN
-// ===================================
 
 function updateConnectionStatus(connected) {
     const statusEl = document.getElementById('connectionStatus');
@@ -157,17 +117,11 @@ function updateConnectionStatus(connected) {
     }
 }
 
-// ===================================
-// MANEJO DE MENSAJES
-// ===================================
-
 function handleMessage(msg) {
     if (!msg) return;
 
-    // Actualizar timestamp del último mensaje recibido
     app.lastMessageTime = Date.now();
 
-    // Si recibimos un mensaje, estamos conectados
     if (!app.connected) {
         app.connected = true;
         updateConnectionStatus(true);
@@ -183,7 +137,6 @@ function handleMessage(msg) {
             break;
 
         case 'sensores':
-            // Soportar formato del ESP32: {clients: [...], total: N}
             if (msg.payload && msg.payload.clients) {
                 app.sensores = msg.payload.clients.map(c => ({
                     id: c.id,
@@ -196,7 +149,6 @@ function handleMessage(msg) {
                 app.sensores = msg.payload;
             }
             renderSensoresSelect();
-            console.log('✅ Sensores actualizados:', app.sensores.length);
             break;
 
         case 'emg_data':
@@ -216,26 +168,12 @@ function handleMessage(msg) {
             showToast(msg.payload.title, msg.payload.message, msg.payload.type);
             break;
 
-        case 'session_data_response':
-            // Recibir datos de sesión solicitados
-            if (msg.payload && msg.payload.sessionId && msg.payload.data) {
-                console.log(`Datos recibidos para sesión ${msg.payload.sessionId}: ${msg.payload.data.length} muestras`);
-                // Solo actualizar si estamos viendo esta sesión
-                const currentSessionId = document.getElementById('selectSesionGrafico').value;
-                if (currentSessionId == msg.payload.sessionId) {
-                    renderChartWithData(msg.payload.sessionId, msg.payload.data);
-                }
-            }
-            break;
-
         case 'esp32/responses':
-            // Manejar respuestas del ESP32
             if (typeof msg.payload === 'string') {
                 const parts = msg.payload.split(':');
                 if (parts.length >= 2) {
                     const responseType = parts[1];
 
-                    // Calibration_Status_{JSON}
                     if (responseType.startsWith('Calibration_Status_')) {
                         const jsonStr = msg.payload.substring(msg.payload.indexOf('Calibration_Status_') + 19);
                         try {
@@ -247,84 +185,53 @@ function handleMessage(msg) {
                             console.error('Error parsing calibration status:', e);
                         }
                     }
-                    // Calibration_Started
-                    else if (responseType === 'Calibration_Started') {
-                        console.log('Calibración iniciada en el dispositivo');
-                    }
                 }
             }
             break;
     }
 }
 
-// ===================================
-// CONTROL DE SESIÓN
-// ===================================
-
 function initEventListeners() {
-    // Botón Abrir Modal
     document.getElementById('btnAbrirModal').addEventListener('click', abrirModalSesion);
-
-    // Botón Check Sensor
     document.getElementById('btnCheck').addEventListener('click', checkSensor);
-
-    // Botón Calibrar
     document.getElementById('btnCalibrar').addEventListener('click', abrirModalCalibracion);
-
-    // Botones del Modal de Sesión
     document.getElementById('btnModalIniciar').addEventListener('click', iniciarSesion);
     document.getElementById('btnModalDetener').addEventListener('click', detenerSesion);
-
-    // Botones del Modal de Calibración
     document.getElementById('btnStartCalibration').addEventListener('click', iniciarCalibracion);
     document.getElementById('btnCancelCalibration').addEventListener('click', cancelarCalibracion);
-
-    // Formulario Persona
     document.getElementById('formPersona').addEventListener('submit', agregarPersona);
 
-    // Selector de persona para gráfico
     document.getElementById('selectPersonaGrafico').addEventListener('change', (e) => {
         const personaId = e.target.value;
         const selectSesion = document.getElementById('selectSesionGrafico');
 
         if (personaId) {
-            // Habilitar selector de sesiones y cargar las de esa persona
             selectSesion.disabled = false;
             updateSesionesSelectByPersona(personaId);
-            // Mostrar medias de las sesiones de esa persona
             updateChart('', personaId);
         } else {
-            // Deshabilitar y limpiar selector de sesiones
             selectSesion.disabled = true;
             selectSesion.innerHTML = '<option value="">-- Primero selecciona persona --</option>';
-            // Limpiar gráfico
             updateChart('', '');
         }
     });
 
-    // Selector de sesión para gráfico
     document.getElementById('selectSesionGrafico').addEventListener('change', (e) => {
         const personaId = document.getElementById('selectPersonaGrafico').value;
-        const sessionId = e.target.value;
-        console.log('🔄 Sesión seleccionada:', sessionId, 'Persona:', personaId);
         if (!personaId) return;
-        updateChart(sessionId, personaId);
+        updateChart(e.target.value, personaId);
     });
 
-    // Botón refrescar gráfico
     document.getElementById('btnRefreshChart').addEventListener('click', () => {
         const personaId = document.getElementById('selectPersonaGrafico').value;
         const sesionId = document.getElementById('selectSesionGrafico').value;
         updateChart(sesionId, personaId);
     });
 
-    // Exportar CSV
     document.getElementById('btnExportCSV').addEventListener('click', exportarCSV);
 
-    // Refrescar historial
     document.getElementById('btnRefreshHistory').addEventListener('click', () => renderHistorial());
 
-    // Filtro de personas en historial
     document.getElementById('selectPersonaHistorial').addEventListener('change', (e) => {
         renderHistorial(e.target.value);
     });
@@ -338,7 +245,6 @@ function checkSensor() {
         return;
     }
 
-    // Buscar info del sensor seleccionado
     const sensor = app.sensores.find(s => (s.id || s.ip) === sensorId);
 
     if (!sensor || !sensor.ip) {
@@ -347,19 +253,11 @@ function checkSensor() {
     }
 
     const sensorName = sensor.nombre || sensor.id || sensor.ip;
-    const targetIp = sensor.ip;
+    const message = `${sensor.ip}:Check`;
 
-    // Formato: <targetIp>:Check
-    const message = `${targetIp}:Check`;
-
-    // Enviar a Node-RED que lo reenviará al MQTT
     if (typeof uibuilder !== 'undefined') {
-        uibuilder.send({
-            topic: 'esp32/commands',
-            payload: message
-        });
+        uibuilder.send({ topic: 'esp32/commands', payload: message });
         showToast('Comando Enviado', `Comprobando sensor: ${sensorName}`, 'info');
-        console.log(`📡 Comando MQTT: ${message}`);
     }
 }
 
@@ -384,8 +282,6 @@ function iniciarSesion() {
     const targetIP = sensor.ip;
 
     const persona = app.personas.find(p => p.id == personaId);
-
-    // Generar nombre de sesión
     const nombreSesion = descripcion ||
         `${persona ? persona.nombre : 'Desconocido'} - ${new Date().toLocaleDateString('es-ES')}`;
 
@@ -403,34 +299,26 @@ function iniciarSesion() {
         min: 999
     };
 
-    // Actualizar UI principal
     const alertEl = document.getElementById('alertEstado');
     alertEl.className = 'alert mt-3 mb-0 alert-success';
     document.getElementById('estadoTexto').innerHTML =
         `<strong>CAPTURANDO</strong> - ${app.sesionActiva.persona_nombre}`;
 
-    // Actualizar UI del modal
     document.getElementById('modalAlertEstado').className = 'alert alert-success';
     document.getElementById('modalEstadoTexto').innerHTML = '<strong>SESIÓN ACTIVA</strong> - Capturando datos';
     document.getElementById('btnModalIniciar').disabled = true;
     document.getElementById('btnModalDetener').disabled = false;
 
-    const message = `${targetIP}:StartSession`;
-    // Enviar a Node-RED
     if (typeof uibuilder !== 'undefined') {
-        uibuilder.send({ topic: 'session/start', payload: message });
+        uibuilder.send({ topic: 'session/start', payload: `${targetIP}:StartSession` });
     }
 
     showToast('Sesión Iniciada', `Capturando datos de ${app.sesionActiva.persona_nombre}`, 'success');
 
-    // Iniciar timer de sesión y resetear adaptaciones
     startSessionTimer();
     resetAdaptaciones();
-    // Capturar los valores elegidos por el usuario como punto de partida
     ejercicioMode.effectiveReps = parseInt(document.getElementById('targetReps')?.value || '0');
     ejercicioMode.effectiveTime = parseInt(document.getElementById('targetTime')?.value || '0');
-
-    // Limpiar estadísticas y gráfico de tiempo real
     resetStats();
     clearModalChart();
     resetFatigaDetection();
@@ -438,12 +326,10 @@ function iniciarSesion() {
 function detenerSesion() {
     if (!app.sesionActiva) return;
 
-    // Obtener el sensor que se usó en la sesión
     const sensorId = document.getElementById('selectSensor').value;
     const sensor = app.sensores.find(s => (s.id || s.ip) === sensorId);
     const targetIP = sensor ? sensor.ip : null;
 
-    // Calcular estadísticas finales
     app.sesionActiva.fecha_fin = new Date().toISOString();
     app.sesionActiva.estado = 'finalizada';
     app.sesionActiva.total_muestras = app.sesionActiva.muestras;
@@ -458,26 +344,16 @@ function detenerSesion() {
         app.sesionActiva.emg_min = 0;
     }
 
-    // Enviar comando StopSession al ESP32
     if (targetIP && typeof uibuilder !== 'undefined') {
-        const stopMessage = `${targetIP}:StopSession`;
-        uibuilder.send({
-            topic: 'esp32/commands',
-            payload: stopMessage
-        });
+        uibuilder.send({ topic: 'esp32/commands', payload: `${targetIP}:StopSession` });
     }
 
-    // Guardar sesión localmente
     app.sesionesFinalizadas.push({ ...app.sesionActiva });
     localStorage.setItem('sesionesFinalizadas', JSON.stringify(app.sesionesFinalizadas));
     localStorage.setItem('emgData_' + app.sesionActiva.id, JSON.stringify(app.sesionActiva.datos));
 
-    // Enviar sesión a Node-RED para guardar en base de datos
     if (typeof uibuilder !== 'undefined') {
-        uibuilder.send({
-            topic: 'session/stop',
-            payload: app.sesionActiva
-        });
+        uibuilder.send({ topic: 'session/stop', payload: app.sesionActiva });
     }
 
     stopSessionTimer();
@@ -486,39 +362,25 @@ function detenerSesion() {
         `${app.sesionActiva.total_muestras} muestras - Promedio: ${app.sesionActiva.emg_promedio.toFixed(4)}`,
         'info');
 
-    // Resetear UI principal
     document.getElementById('inputDescripcionSesion').value = '';
 
     const alertEl = document.getElementById('alertEstado');
     alertEl.className = 'alert mt-3 mb-0';
     document.getElementById('estadoTexto').textContent = 'Sin sesión activa';
 
-    // Resetear UI del modal
     document.getElementById('modalAlertEstado').className = 'alert alert-warning';
     document.getElementById('modalEstadoTexto').textContent = 'Sin sesión activa';
     document.getElementById('btnModalIniciar').disabled = false;
     document.getElementById('btnModalDetener').disabled = true;
 
-    // Cerrar el modal si está abierto
-    if (app.modalSesion) {
-        app.modalSesion.hide();
-    }
+    if (app.modalSesion) app.modalSesion.hide();
 
     app.sesionActiva = null;
-
-    // Limpiar gráfico de tiempo real
     clearModalChart();
-
-    // Actualizar selects
     updateSesionesSelect();
 }
 
-// ===================================
-// ESTADÍSTICAS
-// ===================================
-
 function updateStats(emgValue) {
-    // Si hay una sesión activa, actualizar con datos en tiempo real
     if (app.sesionActiva && emgValue !== undefined) {
         app.sesionActiva.muestras++;
         app.sesionActiva.suma += emgValue;
@@ -535,7 +397,6 @@ function updateStats(emgValue) {
         return;
     }
 
-    // Si no hay sesión activa pero hay una sesión seleccionada en el gráfico
     const selectSesionGrafico = document.getElementById('selectSesionGrafico');
     const sessionId = selectSesionGrafico ? selectSesionGrafico.value : null;
 
@@ -548,7 +409,6 @@ function updateStats(emgValue) {
             document.getElementById('statUltimo').textContent = (session.emg_min || 0).toFixed(4);
         }
     } else if (!app.sesionActiva) {
-        // Reiniciar si no hay grabaciones ni selecciones
         resetStats();
     }
 }
@@ -559,10 +419,6 @@ function resetStats() {
     document.getElementById('statMax').textContent = '0.0000';
     document.getElementById('statUltimo').textContent = '0.0000';
 }
-
-// ===================================
-// GRÁFICO
-// ===================================
 
 function initChart() {
     const ctx = document.getElementById('chartEMG').getContext('2d');
@@ -624,7 +480,7 @@ function initChart() {
                                         `Máx: ${(sesion.emg_max || 0).toFixed(4)}`,
                                         `Mín: ${(sesion.emg_min || 0).toFixed(4)}`,
                                         '',
-                                        '👆 Clic para ver todos los valores'
+                                        'Clic para ver todos los valores'
                                     ];
                                 }
                             }
@@ -661,23 +517,18 @@ function initChart() {
                 mode: 'nearest'
             },
             onClick: (event, elements) => {
-                // Solo funciona en modo medias (cuando hay puntos de sesiones)
                 if (app.modoGrafico !== 'medias' || elements.length === 0) return;
 
                 const index = elements[0].index;
                 const sesion = app.sesionesEnGrafico[index];
 
                 if (sesion && sesion.id) {
-                    console.log('🖱️ Clic en sesión:', sesion.id, sesion);
                     const personaId = document.getElementById('selectPersonaGrafico').value;
-                    // Actualizar el selector de sesiones
                     document.getElementById('selectSesionGrafico').value = sesion.id;
-                    // Mostrar datos de la sesión
                     updateChart(sesion.id, personaId);
                 }
             },
             onHover: (event, elements) => {
-                // Cambiar cursor a pointer cuando está sobre un punto en modo medias
                 const canvas = event.native.target;
                 if (app.modoGrafico === 'medias' && elements.length > 0) {
                     canvas.style.cursor = 'pointer';
@@ -690,13 +541,10 @@ function initChart() {
 }
 
 async function updateChart(sessionId, personaId) {
-    console.log('📊 updateChart llamado con sessionId:', sessionId, 'personaId:', personaId);
-
     if (!app.chartEMG) return;
 
     const persona = personaId ? app.personas.find(p => p.id == personaId) : null;
 
-    // Si no hay persona seleccionada, mostrar mensaje
     if (!personaId) {
         app.chartEMG.data.labels = [];
         app.chartEMG.data.datasets[0].data = [];
@@ -710,9 +558,8 @@ async function updateChart(sessionId, personaId) {
     const sesionesFiltradas = app.sesionesFinalizadas.filter(s => s.persona_id == personaId);
 
     if (!sessionId || sessionId === '') {
-        // MODO 1: Mostrar medias de todas las sesiones de la persona
         app.modoGrafico = 'medias';
-        app.sesionesEnGrafico = sesionesFiltradas; // Guardar para el onClick
+        app.sesionesEnGrafico = sesionesFiltradas;
 
         if (sesionesFiltradas.length === 0) {
             app.chartEMG.data.labels = [];
@@ -722,7 +569,6 @@ async function updateChart(sessionId, personaId) {
             return;
         }
 
-        // Crear datos para gráfico de puntos (scatter) con medias
         const scatterData = sesionesFiltradas.map((s, i) => ({
             x: i + 1,
             y: s.emg_promedio || 0
@@ -758,31 +604,22 @@ async function updateChart(sessionId, personaId) {
         app.chartEMG.options.scales.y.title.text = 'Media EMG';
 
     } else {
-        // MODO 2: Mostrar TODOS los valores EMG de una sesión específica
         app.modoGrafico = 'detalle';
-        app.sesionesEnGrafico = []; // Limpiar
+        app.sesionesEnGrafico = [];
 
         const session = sesionesFiltradas.find(s => s.id == sessionId);
         let emgData = [];
 
-        console.log(`📊 Cargando datos de sesión ID: ${sessionId}`);
-
         try {
-            const url = `/api/sesion/${sessionId}/datos`;
-            console.log(`🌐 Fetching: ${url}`);
-            const res = await fetch(url);
-            console.log(`📡 Response status: ${res.status}`);
+            const res = await fetch(`/api/sesion/${sessionId}/datos`);
             if (res.ok) {
                 const result = await res.json();
-                console.log(`📦 Result:`, result);
                 emgData = result.emg_values || [];
-                console.log(`✅ Datos EMG cargados: ${emgData.length} valores`);
             } else {
-                const errorText = await res.text();
-                console.log(`❌ Error API: ${res.status}`, errorText);
+                console.error('Error API datos EMG:', res.status);
             }
         } catch (e) {
-            console.error('⚠️ Error en fetch:', e);
+            console.error('Error cargando datos EMG:', e);
             emgData = JSON.parse(localStorage.getItem('emgData_' + sessionId)) || [];
         }
 
@@ -794,12 +631,9 @@ async function updateChart(sessionId, personaId) {
             return;
         }
 
-        // Crear labels para cada muestra
         const labels = emgData.map((_, i) => i + 1);
-
         const fecha = session ? new Date(session.fecha_inicio).toLocaleString('es-ES') : '';
 
-        // Configurar gráfico de línea con todos los valores
         app.chartEMG.data.labels = labels;
         app.chartEMG.data.datasets[0].data = emgData;
         app.chartEMG.data.datasets[0].label = `Valores EMG (${emgData.length} muestras)`;
@@ -822,20 +656,17 @@ async function updateChart(sessionId, personaId) {
         app.chartEMG.options.scales.y.title.text = 'Valor EMG';
     }
 
-    updateStats(); // <--- Actualizar las tarjetas de estadísticas con la sesión elegida
+    updateStats();
     app.chartEMG.update();
 }
 
 function updateSesionesSelect() {
-    // Resetear selector de sesiones a estado inicial (deshabilitado)
     const select = document.getElementById('selectSesionGrafico');
     select.innerHTML = '<option value="">-- Primero selecciona persona --</option>';
     select.disabled = true;
 
-    // Resetear selector de personas del gráfico
     document.getElementById('selectPersonaGrafico').value = '';
 
-    // Actualizar el selector de personas para el gráfico
     updatePersonasGraficoSelect();
 }
 
@@ -861,7 +692,7 @@ function updateSesionesSelectByPersona(personaId) {
     }
 
     select.disabled = false;
-    select.innerHTML = '<option value="">📊 Ver medias (o haz clic en el gráfico)</option>';
+    select.innerHTML = '<option value="">Ver medias (o haz clic en el gráfico)</option>';
 
     const sesionesFiltradas = app.sesionesFinalizadas.filter(s => s.persona_id == personaId);
 
@@ -885,10 +716,6 @@ function updateSesionesSelectByPersona(personaId) {
     });
 }
 
-// ===================================
-// PERSONAS
-// ===================================
-
 function agregarPersona(e) {
     e.preventDefault();
 
@@ -902,33 +729,11 @@ function agregarPersona(e) {
         return;
     }
 
-    const newId = app.personas.length > 0 ?
-        Math.max(...app.personas.map(p => p.id)) + 1 : 1;
-
-    const persona = {
-        id: newId,
-        nombre,
-        email: email || null,
-        telefono: telefono || null,
-        descripcion: descripcion || null,
-        fecha_creacion: new Date().toISOString()
-    };
-
-    app.personas.push(persona);
-    localStorage.setItem('personas', JSON.stringify(app.personas));
-
-    // Enviar a Node-RED
     if (typeof uibuilder !== 'undefined') {
-        uibuilder.send({ topic: 'persona/new', payload: persona });
+        uibuilder.send({ topic: 'persona/new', payload: { nombre, email: email || null, telefono: telefono || null, descripcion: descripcion || null } });
     }
 
-    // Resetear formulario
     e.target.reset();
-
-    // Actualizar UI
-    renderPersonasSelect();
-    renderPersonas();
-    renderPersonasHistorialSelect();
 
     showToast('Persona Agregada', `${nombre} ha sido registrado`, 'success');
 }
@@ -936,7 +741,7 @@ function agregarPersona(e) {
 function renderPersonasSelect() {
     const select = document.getElementById('selectPersona');
     if (!select) {
-        console.error('❌ Element selectPersona not found');
+        console.error('Element selectPersona not found');
         return;
     }
 
@@ -953,11 +758,10 @@ function renderPersonasSelect() {
 function renderSensoresSelect() {
     const select = document.getElementById('selectSensor');
     if (!select) {
-        console.error('❌ Element selectSensor not found');
+        console.error('Element selectSensor not found');
         return;
     }
 
-    // Guardar el valor seleccionado actualmente
     const currentValue = select.value;
 
     select.innerHTML = '<option value="">-- Seleccionar --</option>';
@@ -966,17 +770,11 @@ function renderSensoresSelect() {
         const option = document.createElement('option');
         option.value = s.id || s.ip;
 
-        // Construir texto descriptivo
         let text = s.nombre || s.id || s.ip;
-        if (s.ip && s.ip !== s.id) {
-            text += ` [${s.ip}]`;
-        }
-        if (s.estado) {
-            text += ` - ${s.estado}`;
-        }
+        if (s.ip && s.ip !== s.id) text += ` [${s.ip}]`;
+        if (s.estado) text += ` - ${s.estado}`;
         option.textContent = text;
 
-        // Deshabilitar si está desconectado
         if (s.estado === 'desconectado') {
             option.disabled = true;
         }
@@ -984,7 +782,6 @@ function renderSensoresSelect() {
         select.appendChild(option);
     });
 
-    // Restaurar el valor seleccionado si todavía existe en la lista
     if (currentValue && select.querySelector(`option[value="${currentValue}"]`)) {
         select.value = currentValue;
     }
@@ -1036,30 +833,16 @@ function renderPersonasHistorialSelect() {
 function eliminarPersona(id) {
     if (!confirm('¿Eliminar esta persona?')) return;
 
-    // Enviar a Node-RED para eliminar de la base de datos
     if (typeof uibuilder !== 'undefined') {
         uibuilder.send({ topic: 'persona/delete', payload: { id: id } });
     }
 
-    // Actualizar estado local
-    app.personas = app.personas.filter(p => p.id !== id);
-    localStorage.setItem('personas', JSON.stringify(app.personas));
-
-    renderPersonasSelect();
-    renderPersonas();
-    renderPersonasHistorialSelect();
-
     showToast('Persona Eliminada', 'La persona ha sido eliminada', 'warning');
 }
-
-// ===================================
-// HISTORIAL
-// ===================================
 
 function renderHistorial(personaId = '') {
     const tbody = document.getElementById('historialBody');
 
-    // Filtrar sesiones por persona si se especifica
     let sesiones = app.sesionesFinalizadas;
     if (personaId) {
         sesiones = sesiones.filter(s => s.persona_id == personaId);
@@ -1094,18 +877,23 @@ function renderHistorial(personaId = '') {
 }
 
 function verSesion(id) {
+    const sesion = app.sesionesFinalizadas.find(s => s.id == id);
+    if (!sesion) return;
+
+    const personaId = sesion.persona_id;
+
+    document.getElementById('selectPersonaGrafico').value = personaId;
+    updateSesionesSelectByPersona(personaId);
     document.getElementById('selectSesionGrafico').value = id;
-    updateChart(id);
+    updateChart(id, personaId);
     showPage('sesiones');
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
     document.querySelector('[data-page="sesiones"]').classList.add('active');
 }
 
 function exportarCSV() {
-    // Obtener filtro de persona si está seleccionado
     const personaId = document.getElementById('selectPersonaHistorial').value;
 
-    // Filtrar sesiones según la persona seleccionada
     let sesiones = app.sesionesFinalizadas;
     if (personaId) {
         sesiones = sesiones.filter(s => s.persona_id == personaId);
@@ -1126,7 +914,6 @@ function exportarCSV() {
     const a = document.createElement('a');
     a.href = url;
 
-    // Nombre del archivo según el filtro
     const fecha = new Date().toISOString().slice(0, 10);
     const personaNombre = personaId ? app.personas.find(p => p.id == personaId)?.nombre.replace(/\s+/g, '_') : '';
     a.download = `EMG_Sesions${personaNombre}_${fecha}.csv`;
@@ -1140,13 +927,8 @@ function exportarCSV() {
     showToast('Exportación Completa', mensaje, 'success');
 }
 
-// ===================================
-// DATOS DESDE API
-// ===================================
-
 async function loadLocalData() {
     try {
-        // Cargar personas desde API
         const personasRes = await fetch('/api/personas');
         if (personasRes.ok) {
             app.personas = await personasRes.json();
@@ -1154,59 +936,36 @@ async function loadLocalData() {
             renderPersonas();
             renderPersonasHistorialSelect();
             updatePersonasGraficoSelect();
-            console.log('✅ Personas cargadas desde API:', app.personas.length);
         }
-    } catch (e) {
-        console.log('⚠️ API personas no disponible, usando localStorage');
-        const personas = localStorage.getItem('personas');
-        if (personas) {
-            app.personas = JSON.parse(personas);
-            renderPersonasSelect();
-            renderPersonas();
-            renderPersonasHistorialSelect();
-            updatePersonasGraficoSelect();
-        }
-    }
+    } catch (e) {}
 
     try {
-        // Cargar sesiones desde API
         const sesionesRes = await fetch('/api/sesiones');
         if (sesionesRes.ok) {
             app.sesionesFinalizadas = await sesionesRes.json();
             updateSesionesSelect();
             renderHistorial();
             updateChart('');
-            console.log('✅ Sesiones cargadas desde API:', app.sesionesFinalizadas.length);
         }
     } catch (e) {
-        console.log('⚠️ API sesiones no disponible, usando localStorage');
         const sesiones = localStorage.getItem('sesionesFinalizadas');
         if (sesiones) {
             app.sesionesFinalizadas = JSON.parse(sesiones);
             updateSesionesSelect();
         }
     }
-
-    // Los sensores se reciben automáticamente vía MQTT desde el ESP32 Manager
-    // (topic: esp32/clients, cada 5 segundos)
-    console.log('ℹ️ Esperando lista de sensores desde ESP32 Manager (MQTT)...');
 }
 
 async function loadTestData() {
-    // Primero intentar cargar desde API
     try {
         const res = await fetch('/api/personas');
         if (res.ok) {
-            console.log('✅ API disponible, no se cargan datos de prueba');
             await loadLocalData();
             updateConnectionStatus(true);
             return;
         }
-    } catch (e) {
-        console.log('⚠️ API no disponible, cargando datos de prueba');
-    }
+    } catch (e) {}
 
-    // Datos de prueba para modo standalone (solo si API no disponible)
     if (app.personas.length === 0) {
         app.personas = [
             { id: 1, nombre: 'Juan García', email: 'juan@email.com', telefono: '+34 612345678' },
@@ -1216,7 +975,6 @@ async function loadTestData() {
         localStorage.setItem('personas', JSON.stringify(app.personas));
     }
 
-    // Sensores de prueba
     if (app.sensores.length === 0) {
         app.sensores = [
             { id: 'ESP32_001', ip: '192.168.4.100', nombre: 'Sensor EMG Brazo', estado: 'conectado' },
@@ -1235,7 +993,6 @@ async function loadTestData() {
         ];
         localStorage.setItem('sesionesFinalizadas', JSON.stringify(app.sesionesFinalizadas));
 
-        // Generar datos EMG de prueba
         app.sesionesFinalizadas.forEach(s => {
             const datos = [];
             for (let i = 0; i < s.total_muestras; i++) {
@@ -1256,10 +1013,6 @@ async function loadTestData() {
     updateConnectionStatus(true);
 }
 
-// ===================================
-// NOTIFICACIONES
-// ===================================
-
 function showToast(title, message, type = 'info') {
     const toast = document.getElementById('toastNotification');
     const titleEl = document.getElementById('toastTitle');
@@ -1268,7 +1021,6 @@ function showToast(title, message, type = 'info') {
     titleEl.textContent = title;
     messageEl.textContent = message;
 
-    // Color según tipo
     toast.className = 'toast';
     if (type === 'success') toast.classList.add('bg-success', 'text-white');
     else if (type === 'danger') toast.classList.add('bg-danger', 'text-white');
@@ -1279,15 +1031,10 @@ function showToast(title, message, type = 'info') {
     bsToast.show();
 }
 
-// ===================================
-// MODAL DE SESIÓN
-// ===================================
-
 function initModal() {
     app.modalSesion = new bootstrap.Modal(document.getElementById('modalSesion'));
     app.modalCalibracion = new bootstrap.Modal(document.getElementById('modalCalibracion'));
 
-    // Event listener para cuando se cierra el modal de calibración
     document.getElementById('modalCalibracion').addEventListener('hidden.bs.modal', function () {
         stopCalibrationPolling();
     });
@@ -1302,34 +1049,25 @@ function abrirModalSesion() {
         return;
     }
 
-    // Actualizar estado del modal
     if (app.sesionActiva) {
-        // Ya hay una sesión activa
         document.getElementById('modalAlertEstado').className = 'alert alert-success';
         document.getElementById('modalEstadoTexto').innerHTML = '<strong>SESIÓN ACTIVA</strong> - Capturando datos';
 
         document.getElementById('btnModalIniciar').disabled = true;
         document.getElementById('btnModalDetener').disabled = false;
     } else {
-        // Sin sesión activa
         document.getElementById('modalAlertEstado').className = 'alert alert-warning';
         document.getElementById('modalEstadoTexto').textContent = 'Sin sesión activa';
 
         document.getElementById('btnModalIniciar').disabled = false;
         document.getElementById('btnModalDetener').disabled = true;
 
-        // Limpiar el gráfico del modal si no hay sesión activa
         clearModalChart();
     }
 
     app.modalSesion.show();
 }
 
-// ===================================
-// GRÁFICO DE TIEMPO REAL DEL MODAL
-// ===================================
-
-// Inicializar gráfico del modal
 function initModalChart() {
     const ctx = document.getElementById('chartModalRealTime').getContext('2d');
 
@@ -1401,18 +1139,12 @@ function initModalChart() {
     });
 }
 
-// ===================================
-// DETECCIÓN DE FATIGA MUSCULAR
-// ===================================
-
-// Calcular RMS (Root Mean Square) de un array de valores
 function calculateRMS(values) {
     if (values.length === 0) return 0;
     const sum = values.reduce((acc, val) => acc + (val * val), 0);
     return Math.sqrt(sum / values.length);
 }
 
-// Calcular desviación estándar
 function calculateStdDev(values) {
     if (values.length === 0) return 0;
     const mean = values.reduce((acc, val) => acc + val, 0) / values.length;
@@ -1420,21 +1152,17 @@ function calculateStdDev(values) {
     return Math.sqrt(variance);
 }
 
-// Analizar fatiga muscular en tiempo real
 function analyzeFatigue(emgValue) {
     const fatiga = app.fatigaData;
 
-    // Fase 1: Establecer baseline (primeros 20 valores)
     if (!fatiga.baselineSet) {
         fatiga.baseline.push(emgValue);
 
         if (fatiga.baseline.length >= fatiga.windowSize) {
             fatiga.rmsBaseline = calculateRMS(fatiga.baseline);
             fatiga.baselineSet = true;
-            console.log('✅ Baseline establecido, RMS:', fatiga.rmsBaseline.toFixed(2));
         }
 
-        // Durante baseline, no hay fatiga
         fatiga.fatigaIndex = 0;
         fatiga.trend = 'estable';
         fatiga.debugInfo = {
@@ -1448,72 +1176,48 @@ function analyzeFatigue(emgValue) {
         return;
     }
 
-    // Fase 2: Análisis continuo con ventana deslizante
     fatiga.currentWindow.push(emgValue);
 
-    // Mantener solo los últimos N valores
     if (fatiga.currentWindow.length > fatiga.windowSize) {
         fatiga.currentWindow.shift();
     }
 
-    // Calcular métricas actuales
     const rmsActual = calculateRMS(fatiga.currentWindow);
     const stdDevActual = calculateStdDev(fatiga.currentWindow);
 
-    // Calcular índice de fatiga/inestabilidad basado en:
-    // 1. Cambio absoluto de RMS (aumenta O disminuye mucho)
-    // 2. Variabilidad alta (señal irregular)
-    // 3. Desviación respecto al baseline
-
-    const rmsChange = Math.abs(rmsActual - fatiga.rmsBaseline); // Cambio absoluto
+    const rmsChange = Math.abs(rmsActual - fatiga.rmsBaseline);
     const rmsChangePercent = (rmsChange / fatiga.rmsBaseline) * 100;
-    const variabilityFactor = stdDevActual / (fatiga.rmsBaseline + 1); // +1 para evitar división por 0
+    const variabilityFactor = stdDevActual / (fatiga.rmsBaseline + 1);
 
-    // Índice de fatiga/inestabilidad (0-100) - ALGORITMO V3
     let fatigaIndex = 0;
+    fatigaIndex += Math.min(rmsChangePercent * 1.5, 50);
+    fatigaIndex += Math.min(variabilityFactor * 60, 50);
 
-    // Componente 1: Cambio ABSOLUTO de RMS (detecta tanto aumento como caída)
-    fatigaIndex += Math.min(rmsChangePercent * 1.5, 50); // Máximo 50 puntos
-
-    // Componente 2: Variabilidad extrema (desviación estándar alta)
-    fatigaIndex += Math.min(variabilityFactor * 60, 50); // Máximo 50 puntos
-
-    // BONUS: Si la desviación estándar es MUY alta (>30% del baseline), penalización extra
     const stdDevPercent = (stdDevActual / fatiga.rmsBaseline) * 100;
     if (stdDevPercent > 30) {
-        fatigaIndex += 20; // +20 puntos por inestabilidad extrema
+        fatigaIndex += 20;
     }
 
-    // Limitar entre 0 y 100
     fatigaIndex = Math.max(0, Math.min(100, fatigaIndex));
 
-    // Determinar tendencia
     let trend = 'estable';
-    if (fatigaIndex < 30) {
-        trend = 'estable';
-    } else if (fatigaIndex < 60) {
-        trend = 'incrementando';
-    } else {
-        trend = 'alta';
-    }
+    if (fatigaIndex >= 60) trend = 'alta';
+    else if (fatigaIndex >= 30) trend = 'incrementando';
 
-    // Actualizar estado
     fatiga.fatigaIndex = fatigaIndex;
     fatiga.trend = trend;
     fatiga.debugInfo = {
         emgValue: emgValue,
         rmsActual: rmsActual,
         stdDevActual: stdDevActual,
-        rmsIncrease: rmsChangePercent, // Ahora es cambio absoluto (%)
+        rmsIncrease: rmsChangePercent,
         variabilityFactor: variabilityFactor,
         stdDevPercent: stdDevPercent
     };
 
-    // Actualizar UI
     updateFatigaUI();
 }
 
-// Actualizar indicador visual de fatiga en la UI
 function updateFatigaUI() {
     const fatiga = app.fatigaData;
     const indicator = document.getElementById('fatigaIndicator');
@@ -1523,7 +1227,6 @@ function updateFatigaUI() {
 
     if (!indicator || !bar || !text || !status) return;
 
-    // Mostrar indicador solo si baseline está establecido
     if (!fatiga.baselineSet) {
         indicator.style.display = 'none';
         return;
@@ -1531,10 +1234,8 @@ function updateFatigaUI() {
 
     indicator.style.display = 'block';
 
-    // Actualizar barra de progreso
     bar.style.width = `${fatiga.fatigaIndex}%`;
 
-    // Cambiar color según nivel
     if (fatiga.fatigaIndex < 30) {
         bar.className = 'progress-bar bg-success';
         status.textContent = '✓ Señal estable';
@@ -1549,51 +1250,39 @@ function updateFatigaUI() {
         status.className = 'badge bg-danger';
     }
 
-    // Actualizar texto
     text.textContent = `${fatiga.fatigaIndex.toFixed(0)}%`;
 
-    // Comprobar si hay que adaptar los objetivos
     checkAdaptation(fatiga.fatigaIndex);
 
-    // Actualizar valores de debug
     if (fatiga.debugInfo) {
         const debug = fatiga.debugInfo;
 
-        // Baseline
         const baselineEl = document.getElementById('debugBaseline');
         if (baselineEl) baselineEl.textContent = fatiga.rmsBaseline.toFixed(2);
 
-        // RMS Actual
         const rmsActualEl = document.getElementById('debugRMSActual');
         if (rmsActualEl) rmsActualEl.textContent = debug.rmsActual.toFixed(2);
 
-        // Aumento RMS
         const rmsIncreaseEl = document.getElementById('debugRMSIncrease');
         if (rmsIncreaseEl) {
-            const increase = debug.rmsIncrease.toFixed(1);
-            rmsIncreaseEl.textContent = `${increase}%`;
+            rmsIncreaseEl.textContent = `${debug.rmsIncrease.toFixed(1)}%`;
             rmsIncreaseEl.className = debug.rmsIncrease > 10 ? 'text-warning' : 'text-success';
         }
 
-        // Std Dev
         const stdDevEl = document.getElementById('debugStdDev');
         if (stdDevEl) stdDevEl.textContent = debug.stdDevActual.toFixed(2);
 
-        // Valor EMG
         const emgValueEl = document.getElementById('debugEMGValue');
         if (emgValueEl) emgValueEl.textContent = debug.emgValue.toFixed(0);
 
-        // Variabilidad
         const variabilityEl = document.getElementById('debugVariability');
         if (variabilityEl) {
-            const varVal = debug.variabilityFactor.toFixed(3);
-            variabilityEl.textContent = varVal;
+            variabilityEl.textContent = debug.variabilityFactor.toFixed(3);
             variabilityEl.className = debug.variabilityFactor > 0.5 ? 'text-warning' : 'text-success';
         }
     }
 }
 
-// Resetear detección de fatiga al iniciar nueva sesión
 function resetFatigaDetection() {
     app.fatigaData = {
         baseline: [],
@@ -1605,36 +1294,29 @@ function resetFatigaDetection() {
         trend: 'estable'
     };
 
-    // Ocultar indicador
     const indicator = document.getElementById('fatigaIndicator');
     if (indicator) {
         indicator.style.display = 'none';
     }
 }
 
-// Actualizar gráfico del modal
 function updateModalChart(emgValue) {
     if (!app.chartModalRealTime) return;
 
-    // Analizar fatiga muscular
     analyzeFatigue(emgValue);
 
-    // Agregar nuevo valor
     app.modalRealtimeData.push(emgValue);
 
-    // Mantener solo los últimos N puntos
     if (app.modalRealtimeData.length > app.maxRealtimePoints) {
         app.modalRealtimeData.shift();
     }
 
-    // Actualizar gráfico
     app.chartModalRealTime.data.labels = app.modalRealtimeData.map((_, i) => i + 1);
     app.chartModalRealTime.data.datasets[0].data = app.modalRealtimeData;
     app.chartModalRealTime.options.plugins.title.text = `Capturando (${app.sesionActiva ? app.sesionActiva.muestras : 0} muestras)`;
     app.chartModalRealTime.update('none');
 }
 
-// Limpiar gráfico del modal
 function clearModalChart() {
     if (!app.chartModalRealTime) return;
 
@@ -1645,10 +1327,6 @@ function clearModalChart() {
     app.chartModalRealTime.update();
 }
 
-// ===================================
-// CALIBRACIÓN DEL SENSOR
-// ===================================
-
 function abrirModalCalibracion() {
     const sensorId = document.getElementById('selectSensor').value;
 
@@ -1657,7 +1335,6 @@ function abrirModalCalibracion() {
         return;
     }
 
-    // Guardar el sensor actual
     app.sensorActual = app.sensores.find(s => (s.id || s.ip) === sensorId);
 
     if (!app.sensorActual || !app.sensorActual.ip) {
@@ -1665,10 +1342,7 @@ function abrirModalCalibracion() {
         return;
     }
 
-    // Resetear UI
     resetCalibrationUI();
-
-    // Abrir modal
     app.modalCalibracion.show();
 }
 
@@ -1690,40 +1364,31 @@ function resetCalibrationUI() {
 function iniciarCalibracion() {
     if (!app.sensorActual) return;
 
-    // Enviar comando de calibración vía MQTT
     const targetIp = app.sensorActual.ip;
     const message = `${targetIp}:Calibrate`;
 
     if (typeof uibuilder !== 'undefined') {
-        uibuilder.send({
-            topic: 'esp32/commands',
-            payload: message
-        });
+        uibuilder.send({ topic: 'esp32/commands', payload: message });
     }
 
     app.calibracionActiva = true;
-    app.calibracionStartTime = Date.now();
 
-    // Actualizar UI
     document.getElementById('btnStartCalibration').classList.add('d-none');
     document.getElementById('btnCancelCalibration').classList.remove('d-none');
     document.getElementById('btnCloseCalibration').disabled = true;
 
-    // Iniciar polling de estado
     startCalibrationPolling();
 
     showToast('Calibración Iniciada', 'Siga las instrucciones en pantalla', 'info');
 }
 
 function startCalibrationPolling() {
-    // Consultar estado cada 500ms
     app.calibracionInterval = setInterval(() => {
         if (!app.calibracionActiva || !app.sensorActual) {
             stopCalibrationPolling();
             return;
         }
 
-        // Solicitar estado de calibración
         const targetIp = app.sensorActual.ip;
         const message = `${targetIp}:CalibrationStatus`;
 
@@ -1826,27 +1491,29 @@ function updateCalibrationUI(status) {
 
 function cancelarCalibracion() {
     stopCalibrationPolling();
+
+    if (app.sensorActual) {
+        const message = `${app.sensorActual.ip}:CancelCalibration`;
+        if (typeof uibuilder !== 'undefined') {
+            uibuilder.send({ topic: 'esp32/commands', payload: message });
+        }
+    }
+
     app.modalCalibracion.hide();
     showToast('Calibración Cancelada', '', 'warning');
 }
 
-// ===================================
-// ===================================
-// MODO DE EJERCICIO
-// ===================================
-
 const ejercicioMode = {
     mode: 'adaptativo',
     lastAdaptation: 0,
-    COOLDOWN: 15000,       // mínimo 15s entre adaptaciones
-    HIGH_THRESHOLD: 65,    // % fatiga para activar
+    COOLDOWN: 15000,
+    HIGH_THRESHOLD: 65,
     adaptationCount: 0,
-    // Valores efectivos internos (independientes de los escalones del select)
-    effectiveReps: 0,      // 0 = sin límite
-    effectiveTime: 0,      // 0 = sin límite
-    REPS_STEP: 1,          // bajar 1 rep por adaptación
-    TIME_STEP: 15,         // subir 15 segundos por adaptación
-    MIN_REPS: 3,           // mínimo de reps permitido
+    effectiveReps: 0,
+    effectiveTime: 0,
+    REPS_STEP: 1,
+    TIME_STEP: 15,
+    MIN_REPS: 3,
 };
 
 function initModoEjercicio() {
@@ -1875,23 +1542,19 @@ function checkAdaptation(fatigaIndex) {
 
     const cambios = [];
 
-    // --- REPS: bajar 1 rep por adaptación ---
     if (ejercicioMode.effectiveReps > 0) {
         const prev = ejercicioMode.effectiveReps;
         ejercicioMode.effectiveReps = Math.max(ejercicioMode.MIN_REPS, prev - ejercicioMode.REPS_STEP);
         if (ejercicioMode.effectiveReps !== prev) {
             cambios.push(`Reps ${prev} → ${ejercicioMode.effectiveReps}`);
-            // Actualizar el select al valor más cercano por debajo
             syncSelectToValue(document.getElementById('targetReps'), ejercicioMode.effectiveReps, 'down');
         }
     }
 
-    // --- TIEMPO: subir 15s por adaptación ---
     if (ejercicioMode.effectiveTime > 0) {
         const prev = ejercicioMode.effectiveTime;
         ejercicioMode.effectiveTime = prev + ejercicioMode.TIME_STEP;
         cambios.push(`Tiempo ${formatTime(prev)} → ${formatTime(ejercicioMode.effectiveTime)}`);
-        // Actualizar el select al valor más cercano por arriba
         syncSelectToValue(document.getElementById('targetTime'), ejercicioMode.effectiveTime, 'up');
     }
 
@@ -1913,7 +1576,6 @@ function checkAdaptation(fatigaIndex) {
         `Fatiga alta (${fatigaIndex.toFixed(0)}%). ${cambios.join(' | ')}`, 'warning');
 }
 
-// Sincroniza el select al valor disponible más cercano (sin cambiar el valor efectivo interno)
 function syncSelectToValue(selectEl, targetValue, direction) {
     if (!selectEl) return;
     const values = Array.from(selectEl.options)
@@ -1939,10 +1601,6 @@ function resetAdaptaciones() {
     if (logEl) logEl.classList.add('d-none');
 }
 
-// ===================================
-// TIMER DE SESIÓN
-// ===================================
-
 const sessionTimer = {
     interval: null,
     startTime: null
@@ -1954,10 +1612,7 @@ function startSessionTimer() {
     const timerRow = document.getElementById('sessionTimerRow');
     timerRow.classList.remove('d-none');
 
-    // Inicializar countdown con el objetivo de tiempo seleccionado
     updateCountdownDisplay();
-
-    // Inicializar display de reps objetivo
     updateRepsGoalDisplay();
 
     if (sessionTimer.interval) clearInterval(sessionTimer.interval);
@@ -2039,8 +1694,6 @@ function updateCountdownDisplay() {
     countdownEl.className = 'fw-bold font-monospace text-light';
 }
 
-// Parpadeo naranja en los valores del timer cuando hay una adaptación.
-// Usamos style inline para ganar siempre a las clases de Bootstrap.
 function flashTimerValues() {
     ['sessionCountdown', 'repsGoalDisplay'].forEach(id => {
         const el = document.getElementById(id);
@@ -2080,10 +1733,6 @@ function formatTime(seconds) {
     const s = (seconds % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
 }
-
-// ===================================
-// WEBCAM
-// ===================================
 
 const webcam = {
     stream: null,
@@ -2145,10 +1794,6 @@ function flipWebcam() {
     document.getElementById('webcamVideo').classList.toggle('flipped', webcam.flipped);
     document.getElementById('cvCanvas').classList.toggle('flipped', webcam.flipped);
 }
-
-// ===================================
-// VISIÓN POR COMPUTADOR - POSE TRACKING
-// ===================================
 
 const cvState = {
     pose: null,
@@ -2227,9 +1872,6 @@ function loadPoseModel() {
             reject(new Error('El script pose.js no está cargado'));
             return;
         }
-        // URL absoluta basada en la página actual para evitar problemas de ruta.
-        // Forzamos la versión no-SIMD para evitar el requisito de SharedArrayBuffer
-        // (que el navegador bloquea sin cabeceras COOP/COEP especiales).
         const base = window.location.href.replace(/\/[^/]*$/, '/');
         const pose = new Pose({
             locateFile: file => {
@@ -2282,7 +1924,6 @@ function processResults(results) {
     const x = lm.x * canvas.width;
     const y = lm.y * canvas.height;
 
-    // Dibujar punto rastreado
     ctx.beginPath();
     ctx.arc(x, y, 12, 0, 2 * Math.PI);
     ctx.fillStyle = 'rgba(59, 130, 246, 0.85)';
@@ -2291,7 +1932,6 @@ function processResults(results) {
     ctx.lineWidth = 2.5;
     ctx.stroke();
 
-    // Dibujar línea objetivo
     if (cvState.targetY !== null) {
         const targetPx = cvState.targetY * canvas.height;
         const reached = lm.y < cvState.targetY;
@@ -2305,7 +1945,6 @@ function processResults(results) {
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Etiqueta objetivo
         ctx.fillStyle = reached ? 'rgba(74, 222, 128, 0.9)' : 'rgba(250, 204, 21, 0.9)';
         ctx.font = 'bold 13px Inter, sans-serif';
         ctx.fillText('OBJETIVO', 8, targetPx - 7);

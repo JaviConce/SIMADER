@@ -1,4 +1,5 @@
 #include "led_Manager.hpp"
+#include "config.hpp"
 Adafruit_NeoPixel neoPixel(NUM_PIXELS, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
 
 LedManager::LedManager() {
@@ -7,7 +8,7 @@ LedManager::LedManager() {
 
 void LedManager::initNeoPixel() {
     neoPixel.begin();
-    neoPixel.setBrightness(50); // Brillo medio (0-255)
+    neoPixel.setBrightness(LED_BRIGHTNESS);
     neoPixel.show(); // Apagar el LED inicialmente
 }
 
@@ -18,10 +19,10 @@ void LedManager::blinkNeoPixel(uint32_t color, int times, int delayMs) {
     while (_blinking && (times == 0 || count < times)) {
         neoPixel.setPixelColor(0, color);
         neoPixel.show();
-        delay(delayMs);
+        vTaskDelay(pdMS_TO_TICKS(delayMs));
         neoPixel.setPixelColor(0, 0);
         neoPixel.show();
-        delay(delayMs);
+        vTaskDelay(pdMS_TO_TICKS(delayMs));
         if (times > 0) count++;
     }
     neoPixel.setPixelColor(0, 0);

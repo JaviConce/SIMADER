@@ -1,40 +1,24 @@
 #include <Arduino.h>
+#include "config.hpp"
 #include "wifi_Config.hpp"
 #include "mqtt_Manager.hpp"
 #include "led_Manager.hpp"
 #include "emgSensor_Manager.hpp"
-
-const int sensorPin = 34;
+#include "command_Handler.hpp"
 
 LedManager ledManager;
 WifiConfig wifiConfig;
 MqttManager mqttManager;
-EMGSensorManager emgSensorManager(sensorPin);
-
-
-void capture_data(){
-  int rawValue = analogRead(sensorPin);
-
-  float voltage = (rawValue / 4095.0) * 3.3;
-  
-  Serial.print("Raw: ");
-  Serial.print(rawValue);
-  Serial.print(" | Voltage: ");
-  Serial.print(voltage);
-  Serial.println("V");
-  
-  delay(10); // 100Hz de muestreo
-
-}
+EMGSensorManager emgSensorManager(EMG_SENSOR_PIN);
+CommandHandler commandHandler(emgSensorManager, ledManager, mqttManager);
 
 void setup() {
-  Serial.begin(115200);
-  pinMode(sensorPin, INPUT);
-  analogReadResolution(12);
+  Serial.begin(SERIAL_BAUD_RATE);
+  pinMode(EMG_SENSOR_PIN, INPUT);
+  analogReadResolution(EMG_ADC_RESOLUTION);
 
   ledManager.initNeoPixel();
 
-  Serial.begin(115200);
   delay(1000);
   int ret = wifiConfig.startWIFI_CONFIG();
   if (ret != 1) {
@@ -43,11 +27,12 @@ void setup() {
   }
   Serial.println("[MAIN][INFO] WiFi connected successfully.");
   Serial.printf("[MAIN][INFO] Local IP: %s\n", WiFi.localIP().toString().c_str());
-  mqttManager.connectToMQTTBroker(WiFi.gatewayIP().toString().c_str(), 1883);
+  mqttManager.setCommandHandler(&commandHandler);
+  mqttManager.connectToMQTTBroker(WiFi.gatewayIP().toString().c_str(), MQTT_PORT);
 }
 
 void loop() {
   mqttManager.mqttLoop();
-  mqttManager.sendRealtimeData();  // Enviar datos en tiempo real si hay sesión activa
-  delay(10); // Pequeño delay para no saturar el CPU
+  mqttManager.sendRealtimeData();
+  delay(EMG_SAMPLING_RATE_MS);
 }

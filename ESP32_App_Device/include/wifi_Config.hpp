@@ -1,9 +1,10 @@
 
 #include <WiFi.h>
+#include "config.hpp"
 
-const std::string ssid = "Manager_app_V1"; // Replace with your network SSID
-const std::string password = "Manager_app_V1"; // Replace with your network password
-const int MAX_CONNECTION_ATTEMPTS = 10;
+const std::string ssid = WIFI_SSID;
+const std::string password = WIFI_PASSWORD;
+const int MAX_CONNECTION_ATTEMPTS = WIFI_MAX_ATTEMPTS;
 
 int startWIFI_CONFIG();
 
