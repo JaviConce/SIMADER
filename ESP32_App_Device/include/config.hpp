@@ -22,7 +22,7 @@
 #define EMG_ADC_RESOLUTION  12
 #define EMG_ADC_MAX_VALUE   4095.0f
 #define EMG_SAMPLING_RATE_MS    10      // 100 Hz
-#define EMG_REALTIME_INTERVAL_MS 500    // Envío en tiempo real cada 500ms
+#define EMG_REALTIME_INTERVAL_MS 200    // Envío en tiempo real cada 200ms
 
 // ===================================
 // CALIBRACIÓN
