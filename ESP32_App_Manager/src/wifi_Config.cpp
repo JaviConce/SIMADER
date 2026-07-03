@@ -32,7 +32,7 @@ int startWiFi_Hotspot() {
     bool create_success = false;
     if(!WiFi.softAPConfig(app_staticIP, app_gateway, app_subnet)) {
         Serial.println("[WIFI_CONFIG][ERROR] Error setting static IP configuration.");
-        return 0;
+        return 1;
     }
     while (!create_success && tries < MAX_CREATION_ATTEMPTS) {
         if(WiFi.softAP(ssid.c_str(), password.c_str())) {
@@ -40,7 +40,7 @@ int startWiFi_Hotspot() {
             Serial.printf("[WIFI_CONFIG][INFO] SSID: %s\n", ssid.c_str());
             Serial.printf("[WIFI_CONFIG][INFO] APP IP address: %s\n", WiFi.softAPIP().toString().c_str());
             create_success = true;
-            return 1;
+            return 0;
         } else {
             Serial.println("[WIFI_CONFIG][ERROR] Error creating WiFi Access Point.");
             if(tries < MAX_CREATION_ATTEMPTS) {
@@ -51,6 +51,6 @@ int startWiFi_Hotspot() {
         tries++;
     }
     Serial.printf("\n[WIFI_CONFIG][ERROR] Error creating the WiFi access point after %i attempts.\n", MAX_CREATION_ATTEMPTS);
-    return 0;
+    return 1;
 }
 
