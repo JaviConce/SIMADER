@@ -1,13 +1,5 @@
 [
     {
-        "id": "flow_receiver",
-        "type": "tab",
-        "label": "1. MQTT Receiver",
-        "disabled": true,
-        "info": "Recibe y almacena datos de dispositivos MQTT",
-        "env": []
-    },
-    {
         "id": "flow_uibuilder",
         "type": "tab",
         "label": "3. UIBuilder Dashboard",
@@ -502,60 +494,6 @@
         "order": 2,
         "showTitle": true,
         "className": ""
-    },
-    {
-        "id": "mqtt_in_all",
-        "type": "mqtt in",
-        "z": "flow_receiver",
-        "name": "Subscribe to esp32/#",
-        "topic": "esp32/#",
-        "qos": "0",
-        "datatype": "auto-detect",
-        "broker": "mqtt_broker_main",
-        "nl": false,
-        "rap": true,
-        "rh": 0,
-        "inputs": 0,
-        "x": 200,
-        "y": 100,
-        "wires": [
-            [
-                "parse_mqtt",
-                "mqtt_emg_receiver"
-            ]
-        ]
-    },
-    {
-        "id": "parse_mqtt",
-        "type": "function",
-        "z": "flow_receiver",
-        "name": "Parse & Store",
-        "func": "let payload = msg.payload;\nif(typeof payload === 'string') {\n    try {\n        payload = JSON.parse(payload);\n    } catch(e) {}\n}\n\nconst msgData = {\n    topic: msg.topic,\n    payload: payload,\n    timestamp: new Date().toISOString(),\n    date: new Date(),\n    receivedAt: Date.now()\n};\n\ncontext.set('lastMessage_' + msg.topic, msgData);\n\nlet history = context.get('history_' + msg.topic) || [];\nhistory.push(msgData);\nif(history.length > 200) {\n    history = history.slice(-200);\n}\ncontext.set('history_' + msg.topic, history);\n\nmsg.payload = msgData;\nreturn msg;",
-        "outputs": 1,
-        "noerr": 0,
-        "x": 480,
-        "y": 120,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "mqtt_emg_receiver",
-        "type": "function",
-        "z": "flow_receiver",
-        "name": "Process EMG Data",
-        "func": "// Solo procesar datos de esp32/emg_data\nif (msg.topic !== 'esp32/emg_data') {\n    return null;\n}\n\nconst activeSession = flow.get('activeSession');\nif (!activeSession) {\n    return null;\n}\n\nlet data;\ntry {\n    data = typeof msg.payload === 'string' ? JSON.parse(msg.payload) : msg.payload;\n} catch(e) {\n    return null;\n}\n\nif (data.emg === undefined) {\n    return null;\n}\n\n// Actualizar estadísticas en memoria\nlet count = flow.get('emgCount') || 0;\nlet sum = flow.get('emgSum') || 0;\nlet max = flow.get('emgMax') || 0;\nlet min = flow.get('emgMin') || 999;\n\ncount++;\nsum += data.emg;\nmax = Math.max(max, data.emg);\nmin = Math.min(min, data.emg);\n\nflow.set('emgCount', count);\nflow.set('emgSum', sum);\nflow.set('emgMax', max);\nflow.set('emgMin', min);\n\n// Mensaje para actualizar stats UI\nmsg.stats = {\n    count: count,\n    average: sum / count,\n    max: max,\n    min: min,\n    lastValue: data.emg\n};\n\n// Preparar para guardar en SQLite\nmsg.params = {\n    $sesion_id: activeSession.id,\n    $valor_emg: data.emg,\n    $valor_crudo: data.raw || null,\n    $voltaje: data.v || null\n};\n\nreturn msg;",
-        "outputs": 1,
-        "timeout": "",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 510,
-        "y": 180,
-        "wires": [
-            []
-        ]
     },
     {
         "id": "uib_handler",

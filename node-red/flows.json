@@ -2,14 +2,14 @@
     {
         "id": "flow_uibuilder",
         "type": "tab",
-        "label": "3. UIBuilder Dashboard",
+        "label": "1. UIBuilder Dashboard",
         "disabled": false,
         "info": "Dashboard con Bootstrap 5"
     },
     {
         "id": "flow_api",
         "type": "tab",
-        "label": "4. API REST",
+        "label": "2. API REST",
         "disabled": false,
         "info": "API REST para conectar SQLite con el Dashboard"
     },
