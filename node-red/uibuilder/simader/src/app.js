@@ -18,11 +18,11 @@ const app = {
     calibracionInterval: null,
     sensorActual: null,
     fatigaData: {
-        baseline: [],
         baselineSet: false,
         rmsBaseline: 0,
         windowSize: 20,
         currentWindow: [],
+        rmsHistory: [],
         fatigaIndex: 0,
         trend: 'estable'
     }
@@ -868,8 +868,11 @@ function renderHistorial(personaId = '') {
             <td class="text-end"><span class="badge bg-success">${(s.emg_max || 0).toFixed(4)}</span></td>
             <td class="text-end"><span class="badge bg-warning text-dark">${(s.emg_min || 0).toFixed(4)}</span></td>
             <td class="text-center">
-                <button class="btn btn-sm btn-outline-primary" onclick="verSesion(${s.id})">
+                <button class="btn btn-sm btn-outline-primary me-1" onclick="verSesion(${s.id})" title="Ver sesión">
                     <i class="bi bi-eye"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-success" onclick="exportarSesionCSV(${s.id})" title="Exportar datos EMG">
+                    <i class="bi bi-file-earmark-spreadsheet"></i>
                 </button>
             </td>
         </tr>
@@ -925,6 +928,42 @@ function exportarCSV() {
         `${sesiones.length} sesiones de ${personaNombre} exportadas` :
         `${sesiones.length} sesiones exportadas`;
     showToast('Exportación Completa', mensaje, 'success');
+}
+
+async function exportarSesionCSV(id) {
+    const sesion = app.sesionesFinalizadas.find(s => s.id == id);
+
+    let datos = [];
+    try {
+        const res = await fetch(`/api/sesion/${id}/datos`);
+        if (res.ok) {
+            const result = await res.json();
+            datos = result.datos || [];
+        }
+    } catch (e) {}
+
+    if (datos.length === 0) {
+        showToast('Error', 'No hay datos EMG para esta sesión', 'warning');
+        return;
+    }
+
+    const nombre = sesion?.persona_nombre?.replace(/\s+/g, '_') || 'desconocido';
+    const fecha = sesion?.fecha_inicio ? new Date(sesion.fecha_inicio).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+
+    let csv = 'muestra,timestamp,emg,valor_crudo,voltaje\n';
+    datos.forEach((d, i) => {
+        csv += `${i + 1},${d.timestamp_servidor || ''},${d.valor_emg ?? ''},${d.valor_crudo ?? ''},${d.voltaje ?? ''}\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `EMG_${nombre}_sesion${id}_${fecha}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    showToast('Exportación Completa', `${datos.length} muestras exportadas`, 'success');
 }
 
 async function loadLocalData() {
@@ -1155,64 +1194,50 @@ function calculateStdDev(values) {
 function analyzeFatigue(emgValue) {
     const fatiga = app.fatigaData;
 
-    if (!fatiga.baselineSet) {
-        fatiga.baseline.push(emgValue);
-
-        if (fatiga.baseline.length >= fatiga.windowSize) {
-            fatiga.rmsBaseline = calculateRMS(fatiga.baseline);
-            fatiga.baselineSet = true;
-        }
-
-        fatiga.fatigaIndex = 0;
-        fatiga.trend = 'estable';
-        fatiga.debugInfo = {
-            emgValue: emgValue,
-            rmsActual: 0,
-            stdDevActual: 0,
-            rmsIncrease: 0,
-            variabilityFactor: 0
-        };
-        updateFatigaUI();
-        return;
-    }
-
     fatiga.currentWindow.push(emgValue);
-
     if (fatiga.currentWindow.length > fatiga.windowSize) {
         fatiga.currentWindow.shift();
+    }
+
+    if (fatiga.currentWindow.length < fatiga.windowSize) {
+        fatiga.fatigaIndex = 0;
+        fatiga.trend = 'estable';
+        updateFatigaUI();
+        return;
     }
 
     const rmsActual = calculateRMS(fatiga.currentWindow);
     const stdDevActual = calculateStdDev(fatiga.currentWindow);
 
-    const rmsChange = Math.abs(rmsActual - fatiga.rmsBaseline);
-    const rmsChangePercent = (rmsChange / fatiga.rmsBaseline) * 100;
-    const variabilityFactor = stdDevActual / (fatiga.rmsBaseline + 1);
+    fatiga.rmsHistory.push(rmsActual);
+    if (fatiga.rmsHistory.length > 30) fatiga.rmsHistory.shift();
 
-    let fatigaIndex = 0;
-    fatigaIndex += Math.min(rmsChangePercent * 1.5, 50);
-    fatigaIndex += Math.min(variabilityFactor * 60, 50);
-
-    const stdDevPercent = (stdDevActual / fatiga.rmsBaseline) * 100;
-    if (stdDevPercent > 30) {
-        fatigaIndex += 20;
+    if (fatiga.rmsHistory.length < 10) {
+        fatiga.fatigaIndex = 0;
+        fatiga.trend = 'estable';
+        updateFatigaUI();
+        return;
     }
 
-    fatigaIndex = Math.max(0, Math.min(100, fatigaIndex));
+    fatiga.baselineSet = true;
 
-    let trend = 'estable';
-    if (fatigaIndex >= 60) trend = 'alta';
-    else if (fatigaIndex >= 30) trend = 'incrementando';
+    const half = Math.floor(fatiga.rmsHistory.length / 2);
+    const earlyRMS = fatiga.rmsHistory.slice(0, half).reduce((a, b) => a + b, 0) / half;
+    const recentRMS = fatiga.rmsHistory.slice(half).reduce((a, b) => a + b, 0) / (fatiga.rmsHistory.length - half);
+
+    const rmsIncrease = earlyRMS > 0.001 ? ((recentRMS - earlyRMS) / earlyRMS) * 100 : 0;
+
+    let fatigaIndex = Math.max(0, Math.min(100, rmsIncrease * 2));
 
     fatiga.fatigaIndex = fatigaIndex;
-    fatiga.trend = trend;
+    fatiga.trend = fatigaIndex >= 60 ? 'alta' : fatigaIndex >= 30 ? 'incrementando' : 'estable';
+    fatiga.rmsBaseline = earlyRMS;
     fatiga.debugInfo = {
         emgValue: emgValue,
         rmsActual: rmsActual,
         stdDevActual: stdDevActual,
-        rmsIncrease: rmsChangePercent,
-        variabilityFactor: variabilityFactor,
-        stdDevPercent: stdDevPercent
+        rmsIncrease: rmsIncrease,
+        variabilityFactor: earlyRMS > 0 ? recentRMS / earlyRMS : 1
     };
 
     updateFatigaUI();
@@ -1285,11 +1310,11 @@ function updateFatigaUI() {
 
 function resetFatigaDetection() {
     app.fatigaData = {
-        baseline: [],
         baselineSet: false,
         rmsBaseline: 0,
         windowSize: 20,
         currentWindow: [],
+        rmsHistory: [],
         fatigaIndex: 0,
         trend: 'estable'
     };
@@ -2038,3 +2063,4 @@ function flashRepCounter() {
 // Exponer funciones globales
 window.eliminarPersona = eliminarPersona;
 window.verSesion = verSesion;
+window.exportarSesionCSV = exportarSesionCSV;
