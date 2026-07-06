@@ -11,7 +11,7 @@ void setup() {
     delay(1000);
 
     int ret = startWiFi_Hotspot();
-    if (ret != 1) {
+    if (ret != 0) {
         Serial.println("[MAIN][ERROR] Failed to start WiFi Hotspot. Stopping execution.");
         while (true) { delay(1000); }
     }
