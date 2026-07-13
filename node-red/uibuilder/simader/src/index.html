@@ -370,94 +370,227 @@
     <div class="modal fade" id="modalSesion" tabindex="-1" aria-labelledby="modalSesionLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-xl">
             <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
+                <div class="modal-header bg-primary text-white py-2">
                     <h5 class="modal-title" id="modalSesionLabel">
                         <i class="bi bi-play-circle me-2"></i>Control de Sesión EMG
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="text-center mb-3">
-                        <div class="alert" id="modalAlertEstado" role="alert">
-                            <i class="bi bi-info-circle me-2"></i>
-                            <span id="modalEstadoTexto">Sin sesión activa</span>
+                <div class="modal-body p-3">
+
+                    <!-- Fila 1: Estado -->
+                    <div class="alert py-2 mb-2" id="modalAlertEstado" role="alert">
+                        <i class="bi bi-info-circle me-1"></i>
+                        <span id="modalEstadoTexto">Sin sesión activa</span>
+                    </div>
+
+                    <!-- Fila 2: Timer (aparece al iniciar sesión) -->
+                    <div id="sessionTimerRow" class="d-none mb-2">
+                        <div class="d-flex justify-content-center align-items-center gap-4 p-2 rounded" style="background:rgba(255,255,255,0.05);">
+                            <div class="text-center">
+                                <div class="fw-bold font-monospace text-light" id="sessionTimerDisplay" style="font-size:1.9rem;letter-spacing:2px;">00:00</div>
+                                <div class="text-secondary text-uppercase" style="font-size:0.62rem;letter-spacing:1px;">Transcurrido</div>
+                            </div>
+                            <div class="vr opacity-25" style="height:40px;"></div>
+                            <div class="text-center">
+                                <div class="fw-bold font-monospace" id="sessionCountdown" style="font-size:1.9rem;letter-spacing:2px;">--:--</div>
+                                <div class="text-secondary text-uppercase" style="font-size:0.62rem;letter-spacing:1px;">Restante</div>
+                            </div>
+                            <div class="vr opacity-25 d-none" id="repsGoalDivider" style="height:40px;"></div>
+                            <div class="text-center d-none" id="repsGoalContainer">
+                                <div class="fw-bold font-monospace" id="repsGoalDisplay" style="font-size:1.9rem;letter-spacing:2px;">0/10</div>
+                                <div class="text-secondary text-uppercase" style="font-size:0.62rem;letter-spacing:1px;">Repeticiones</div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Gráfico en Tiempo Real del Modal -->
-                    <div class="mb-4">
-                        <div class="card bg-transparent border-light">
-                            <div class="card-body">
-                                <div class="chart-container" style="position: relative; height: 300px;">
-                                    <canvas id="chartModalRealTime"></canvas>
+                    <!-- Fila 3: Objetivos + Modo (siempre visibles) -->
+                    <div class="row g-2 mb-2">
+                        <div class="col-4">
+                            <label class="form-label small text-secondary mb-1">
+                                <i class="bi bi-bullseye me-1"></i>Reps objetivo
+                            </label>
+                            <select class="form-select form-select-sm bg-dark text-light border-secondary" id="targetReps">
+                                <option value="0">Sin límite</option>
+                                <option value="5">5 reps</option>
+                                <option value="10" selected>10 reps</option>
+                                <option value="15">15 reps</option>
+                                <option value="20">20 reps</option>
+                                <option value="25">25 reps</option>
+                                <option value="30">30 reps</option>
+                                <option value="50">50 reps</option>
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small text-secondary mb-1">
+                                <i class="bi bi-clock me-1"></i>Tiempo objetivo
+                            </label>
+                            <select class="form-select form-select-sm bg-dark text-light border-secondary" id="targetTime">
+                                <option value="0">Sin límite</option>
+                                <option value="30">30 seg</option>
+                                <option value="60">1 min</option>
+                                <option value="90">1:30 min</option>
+                                <option value="120" selected>2 min</option>
+                                <option value="180">3 min</option>
+                                <option value="300">5 min</option>
+                                <option value="600">10 min</option>
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small text-secondary mb-1">
+                                <i class="bi bi-cpu me-1"></i>Modo ejercicio
+                            </label>
+                            <div class="btn-group w-100 btn-group-sm">
+                                <input type="radio" class="btn-check" name="modoEjercicio" id="modoAdaptativo" value="adaptativo" checked>
+                                <label class="btn btn-outline-light" for="modoAdaptativo" title="Ajusta objetivos según la fatiga">
+                                    <i class="bi bi-cpu me-1"></i>Adapt.
+                                </label>
+                                <input type="radio" class="btn-check" name="modoEjercicio" id="modoEstricto" value="estricto">
+                                <label class="btn btn-outline-light" for="modoEstricto" title="Mantiene reps y tiempo fijos">
+                                    <i class="bi bi-lock me-1"></i>Estricto
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Log de adaptaciones (aparece cuando el modo adaptativo actúa) -->
+                    <div id="adaptacionLog" class="d-none mb-2">
+                        <div class="alert alert-warning py-1 px-2 mb-0 d-flex align-items-center gap-2">
+                            <i class="bi bi-cpu-fill flex-shrink-0"></i>
+                            <span id="adaptacionLogText" class="small flex-grow-1"></span>
+                            <span class="badge bg-warning text-dark flex-shrink-0" id="adaptacionBadge">1</span>
+                        </div>
+                    </div>
+
+                    <!-- Fila 4: Gráfico + Webcam -->
+                    <div class="row g-2 mb-2">
+                        <div class="col-lg-7">
+                            <div class="card bg-transparent border-light h-100">
+                                <div class="card-body p-2">
+                                    <div style="position:relative;height:200px;">
+                                        <canvas id="chartModalRealTime"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Webcam + CV -->
+                        <div class="col-lg-5">
+                            <div class="card bg-transparent border-light h-100">
+                                <div class="card-body p-2 d-flex flex-column align-items-center justify-content-center">
+
+                                    <div id="webcamPlaceholder" class="text-center py-2">
+                                        <i class="bi bi-camera-video-off fs-1 text-secondary mb-2 d-block"></i>
+                                        <p class="text-secondary small mb-2">Cámara no activada</p>
+                                        <button class="btn btn-outline-light btn-sm" id="btnActivarWebcam">
+                                            <i class="bi bi-camera-video me-1"></i>Activar
+                                        </button>
+                                    </div>
+
+                                    <div id="webcamWrapper" class="webcam-wrapper d-none">
+                                        <video id="webcamVideo" class="webcam-video" autoplay playsinline muted></video>
+                                        <canvas id="cvCanvas" class="cv-canvas"></canvas>
+                                    </div>
+
+                                    <div id="webcamControls" class="d-none mt-1 d-flex gap-1 flex-wrap justify-content-center">
+                                        <button class="btn btn-sm btn-outline-success" id="btnIniciarTracking">
+                                            <i class="bi bi-person-bounding-box me-1"></i>Tracking
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-light" id="btnFlipWebcam">
+                                            <i class="bi bi-arrow-left-right"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" id="btnDesactivarWebcam">
+                                            <i class="bi bi-camera-video-off"></i>
+                                        </button>
+                                    </div>
+
+                                    <!-- Panel CV: solo contador + articulación + botones -->
+                                    <div id="cvPanel" class="d-none w-100 mt-1">
+                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                            <div class="text-center flex-shrink-0">
+                                                <div class="rep-counter lh-1" id="repCount">0</div>
+                                                <div class="text-secondary" style="font-size:0.6rem;letter-spacing:1px;">REPS</div>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <div class="progress mb-1 d-none" id="repsProgressBar" style="height:5px;">
+                                                    <div class="progress-bar bg-info" id="repsProgressFill" style="width:0%;transition:width 0.3s;"></div>
+                                                </div>
+                                                <select class="form-select form-select-sm bg-dark text-light border-secondary" id="selectLandmark">
+                                                    <option value="15">Muñeca izq.</option>
+                                                    <option value="16" selected>Muñeca der.</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex gap-1 justify-content-center">
+                                            <button class="btn btn-sm btn-warning" id="btnFijarObjetivo">
+                                                <i class="bi bi-crosshair me-1"></i>Fijar
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-secondary" id="btnResetReps">
+                                                <i class="bi bi-arrow-counterclockwise"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" id="btnPararTracking">
+                                                <i class="bi bi-stop-circle"></i>
+                                            </button>
+                                        </div>
+                                        <p class="text-secondary text-center mt-1 mb-0" style="font-size:0.65rem;">
+                                            <i class="bi bi-hand-index me-1"></i>Clic en el vídeo para fijar objetivo
+                                        </p>
+                                    </div>
+
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Indicador de Fatiga Muscular -->
-                    <div class="mb-4" id="fatigaIndicator" style="display: none;">
+                    <!-- Fila 5: Fatiga EMG -->
+                    <div class="mb-2" id="fatigaIndicator" style="display:none;">
                         <div class="card bg-transparent border-light">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <h6 class="mb-0 text-light">
-                                        <i class="bi bi-activity me-2"></i>Estabilidad de la Señal EMG
-                                    </h6>
-                                    <span id="fatigaStatus" class="badge bg-success">✓ Señal estable</span>
-                                </div>
-                                <div class="progress" style="height: 25px;">
-                                    <div id="fatigaBar" class="progress-bar bg-success" role="progressbar"
-                                         style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-                                        <span id="fatigaText" class="fw-bold">0%</span>
-                                    </div>
-                                </div>
-
-                                <!-- Métricas de Debug -->
-                                <div class="mt-3 p-2 bg-dark rounded">
-                                    <div class="row g-2 small text-light">
-                                        <div class="col-6">
-                                            <strong>RMS Baseline:</strong> <span id="debugBaseline">-</span>
-                                        </div>
-                                        <div class="col-6">
-                                            <strong>RMS Actual:</strong> <span id="debugRMSActual">-</span>
-                                        </div>
-                                        <div class="col-6">
-                                            <strong>Cambio RMS:</strong> <span id="debugRMSIncrease">-</span>
-                                        </div>
-                                        <div class="col-6">
-                                            <strong>Std Dev:</strong> <span id="debugStdDev">-</span>
-                                        </div>
-                                        <div class="col-6">
-                                            <strong>Valor EMG:</strong> <span id="debugEMGValue">-</span>
-                                        </div>
-                                        <div class="col-6">
-                                            <strong>Variabilidad:</strong> <span id="debugVariability">-</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="mt-2">
-                                    <small class="text-muted">
-                                        <i class="bi bi-info-circle me-1"></i>
-                                        Detecta cambios bruscos, variabilidad extrema e inestabilidad en la señal
+                            <div class="card-body p-2">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <small class="text-light fw-semibold">
+                                        <i class="bi bi-activity me-1"></i>Fatiga muscular EMG
                                     </small>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span id="fatigaStatus" class="badge bg-success">✓ Estable</span>
+                                        <button class="btn btn-link btn-sm p-0 text-secondary" type="button"
+                                            data-bs-toggle="collapse" data-bs-target="#debugMetrics" style="font-size:0.7rem;">
+                                            Detalles
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="progress mb-1" style="height:16px;">
+                                    <div id="fatigaBar" class="progress-bar bg-success" role="progressbar" style="width:0%;">
+                                        <span id="fatigaText" class="fw-bold" style="font-size:0.75rem;">0%</span>
+                                    </div>
+                                </div>
+                                <div class="collapse" id="debugMetrics">
+                                    <div class="row g-1 small text-light mt-1 p-1 bg-dark rounded">
+                                        <div class="col-6">RMS Base: <span id="debugBaseline">-</span></div>
+                                        <div class="col-6">RMS Act: <span id="debugRMSActual">-</span></div>
+                                        <div class="col-6">Cambio: <span id="debugRMSIncrease">-</span></div>
+                                        <div class="col-6">Std Dev: <span id="debugStdDev">-</span></div>
+                                        <div class="col-6">EMG: <span id="debugEMGValue">-</span></div>
+                                        <div class="col-6">Variab: <span id="debugVariability">-</span></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="row g-3">
+                    <!-- Fila 6: Botones -->
+                    <div class="row g-2">
                         <div class="col-6">
-                            <button class="btn btn-success btn-lg w-100" id="btnModalIniciar">
-                                <i class="bi bi-play-fill me-2"></i>Iniciar Sesión
+                            <button class="btn btn-success w-100" id="btnModalIniciar">
+                                <i class="bi bi-play-fill me-1"></i>Iniciar Sesión
                             </button>
                         </div>
                         <div class="col-6">
-                            <button class="btn btn-danger btn-lg w-100" id="btnModalDetener" disabled>
-                                <i class="bi bi-stop-fill me-2"></i>Detener Sesión
+                            <button class="btn btn-danger w-100" id="btnModalDetener" disabled>
+                                <i class="bi bi-stop-fill me-1"></i>Detener Sesión
                             </button>
                         </div>
                     </div>
+
                 </div>
             </div>
         </div>
@@ -481,6 +614,11 @@
     <script src="./chart.min.js"></script>
     <!-- UIBuilder Client -->
     <script src="../uibuilder/uibuilder.iife.min.js"></script>
+    <!-- anime.js (animaciones suaves, local) -->
+    <script src="./anime.min.js"></script>
+    <!-- MediaPipe Pose (local, sin internet) -->
+    <script src="./mediapipe/drawing_utils.js"></script>
+    <script src="./mediapipe/pose.js"></script>
     <!-- App JS -->
     <script src="./app.js"></script>
 </body>

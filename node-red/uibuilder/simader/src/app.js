@@ -1,9 +1,3 @@
-// ===================================
-// SIMADER - App JavaScript
-// Bootstrap 5 + UIBuilder + Chart.js
-// ===================================
-
-// Estado de la aplicación
 const app = {
     sesionActiva: null,
     personas: [],
@@ -12,33 +6,27 @@ const app = {
     chartEMG: null,
     chartModalRealTime: null,
     connected: false,
-    sesionesEnGrafico: [], // Sesiones actualmente mostradas en el gráfico
-    modoGrafico: 'medias', // 'medias' o 'detalle'
+    sesionesEnGrafico: [],
+    modoGrafico: 'medias',
     modalSesion: null,
     modalCalibracion: null,
     modalRealtimeData: [],
-    maxRealtimePoints: 100, // Máximo de puntos en el gráfico de tiempo real
-    connectionCheckInterval: null, // Intervalo para verificar conexión
-    lastMessageTime: null, // Timestamp del último mensaje recibido
+    maxRealtimePoints: 100,
+    connectionCheckInterval: null,
+    lastMessageTime: null,
     calibracionActiva: false,
     calibracionInterval: null,
-    calibracionStartTime: null,
     sensorActual: null,
-    // Variables para detección de fatiga muscular
     fatigaData: {
-        baseline: [], // Primeros 20 valores para referencia
         baselineSet: false,
         rmsBaseline: 0,
-        windowSize: 20, // Ventana deslizante para análisis
+        windowSize: 20,
         currentWindow: [],
-        fatigaIndex: 0, // 0-100, donde 0 = sin fatiga, 100 = fatiga máxima
-        trend: 'estable' // 'estable', 'incrementando', 'alta'
+        rmsHistory: [],
+        fatigaIndex: 0,
+        trend: 'estable'
     }
 };
-
-// ===================================
-// INICIALIZACIÓN
-// ===================================
 
 document.addEventListener('DOMContentLoaded', () => {
     initNavigation();
@@ -46,8 +34,10 @@ document.addEventListener('DOMContentLoaded', () => {
     loadLocalData();
     initUIBuilder();
     initModal();
+    initModoEjercicio();
+    initWebcam();
+    initCV();
 
-    // Esperar a que Chart.js esté disponible
     if (typeof Chart !== 'undefined') {
         initChart();
         initModalChart();
@@ -56,20 +46,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Inicializar UIBuilder
 function initUIBuilder() {
     if (typeof uibuilder !== 'undefined') {
         uibuilder.start();
 
-        // Verificar estado inicial de conexión
-        setTimeout(() => {
-            checkConnection();
-        }, 500);
+        setTimeout(() => { checkConnection(); }, 500);
 
-        // Comprobar conexión periódicamente cada 3 segundos
-        app.connectionCheckInterval = setInterval(() => {
-            checkConnection();
-        }, 3000);
+        app.connectionCheckInterval = setInterval(() => { checkConnection(); }, 3000);
 
         uibuilder.onChange('isConnected', (connected) => {
             app.connected = connected;
@@ -80,35 +63,21 @@ function initUIBuilder() {
             handleMessage(msg);
         });
     } else {
-        console.log('UIBuilder no disponible - modo standalone');
-        // Cargar datos de prueba en modo standalone
         loadTestData();
     }
 }
 
-// Verificar estado de conexión
 function checkConnection() {
     if (typeof uibuilder !== 'undefined') {
         const isConnected = uibuilder.get('isConnected');
-        const now = Date.now();
-
-        // Considerar conectado si:
-        // 1. UIBuilder reporta conexión, O
-        // 2. Hemos recibido mensajes en los últimos 10 segundos
-        const hasRecentMessages = app.lastMessageTime && (now - app.lastMessageTime < 10000);
+        const hasRecentMessages = app.lastMessageTime && (Date.now() - app.lastMessageTime < 10000);
         const shouldBeConnected = isConnected || hasRecentMessages;
-
-        // Solo actualizar si hay un cambio de estado
         if (shouldBeConnected !== app.connected) {
             app.connected = shouldBeConnected;
             updateConnectionStatus(shouldBeConnected);
         }
     }
 }
-
-// ===================================
-// NAVEGACIÓN
-// ===================================
 
 function initNavigation() {
     document.querySelectorAll('[data-page]').forEach(link => {
@@ -117,7 +86,6 @@ function initNavigation() {
             const page = e.currentTarget.dataset.page;
             showPage(page);
 
-            // Actualizar nav activo
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
             e.currentTarget.classList.add('active');
         });
@@ -130,7 +98,6 @@ function showPage(pageName) {
     });
     document.getElementById(`page-${pageName}`).classList.remove('d-none');
 
-    // Refrescar datos según la página
     if (pageName === 'historial') {
         renderHistorial();
         renderPersonasHistorialSelect();
@@ -138,10 +105,6 @@ function showPage(pageName) {
         renderPersonas();
     }
 }
-
-// ===================================
-// CONEXIÓN
-// ===================================
 
 function updateConnectionStatus(connected) {
     const statusEl = document.getElementById('connectionStatus');
@@ -154,17 +117,11 @@ function updateConnectionStatus(connected) {
     }
 }
 
-// ===================================
-// MANEJO DE MENSAJES
-// ===================================
-
 function handleMessage(msg) {
     if (!msg) return;
 
-    // Actualizar timestamp del último mensaje recibido
     app.lastMessageTime = Date.now();
 
-    // Si recibimos un mensaje, estamos conectados
     if (!app.connected) {
         app.connected = true;
         updateConnectionStatus(true);
@@ -180,7 +137,6 @@ function handleMessage(msg) {
             break;
 
         case 'sensores':
-            // Soportar formato del ESP32: {clients: [...], total: N}
             if (msg.payload && msg.payload.clients) {
                 app.sensores = msg.payload.clients.map(c => ({
                     id: c.id,
@@ -193,7 +149,6 @@ function handleMessage(msg) {
                 app.sensores = msg.payload;
             }
             renderSensoresSelect();
-            console.log('✅ Sensores actualizados:', app.sensores.length);
             break;
 
         case 'emg_data':
@@ -213,26 +168,12 @@ function handleMessage(msg) {
             showToast(msg.payload.title, msg.payload.message, msg.payload.type);
             break;
 
-        case 'session_data_response':
-            // Recibir datos de sesión solicitados
-            if (msg.payload && msg.payload.sessionId && msg.payload.data) {
-                console.log(`Datos recibidos para sesión ${msg.payload.sessionId}: ${msg.payload.data.length} muestras`);
-                // Solo actualizar si estamos viendo esta sesión
-                const currentSessionId = document.getElementById('selectSesionGrafico').value;
-                if (currentSessionId == msg.payload.sessionId) {
-                    renderChartWithData(msg.payload.sessionId, msg.payload.data);
-                }
-            }
-            break;
-
         case 'esp32/responses':
-            // Manejar respuestas del ESP32
             if (typeof msg.payload === 'string') {
                 const parts = msg.payload.split(':');
                 if (parts.length >= 2) {
                     const responseType = parts[1];
 
-                    // Calibration_Status_{JSON}
                     if (responseType.startsWith('Calibration_Status_')) {
                         const jsonStr = msg.payload.substring(msg.payload.indexOf('Calibration_Status_') + 19);
                         try {
@@ -244,84 +185,53 @@ function handleMessage(msg) {
                             console.error('Error parsing calibration status:', e);
                         }
                     }
-                    // Calibration_Started
-                    else if (responseType === 'Calibration_Started') {
-                        console.log('Calibración iniciada en el dispositivo');
-                    }
                 }
             }
             break;
     }
 }
 
-// ===================================
-// CONTROL DE SESIÓN
-// ===================================
-
 function initEventListeners() {
-    // Botón Abrir Modal
     document.getElementById('btnAbrirModal').addEventListener('click', abrirModalSesion);
-
-    // Botón Check Sensor
     document.getElementById('btnCheck').addEventListener('click', checkSensor);
-
-    // Botón Calibrar
     document.getElementById('btnCalibrar').addEventListener('click', abrirModalCalibracion);
-
-    // Botones del Modal de Sesión
     document.getElementById('btnModalIniciar').addEventListener('click', iniciarSesion);
     document.getElementById('btnModalDetener').addEventListener('click', detenerSesion);
-
-    // Botones del Modal de Calibración
     document.getElementById('btnStartCalibration').addEventListener('click', iniciarCalibracion);
     document.getElementById('btnCancelCalibration').addEventListener('click', cancelarCalibracion);
-
-    // Formulario Persona
     document.getElementById('formPersona').addEventListener('submit', agregarPersona);
 
-    // Selector de persona para gráfico
     document.getElementById('selectPersonaGrafico').addEventListener('change', (e) => {
         const personaId = e.target.value;
         const selectSesion = document.getElementById('selectSesionGrafico');
 
         if (personaId) {
-            // Habilitar selector de sesiones y cargar las de esa persona
             selectSesion.disabled = false;
             updateSesionesSelectByPersona(personaId);
-            // Mostrar medias de las sesiones de esa persona
             updateChart('', personaId);
         } else {
-            // Deshabilitar y limpiar selector de sesiones
             selectSesion.disabled = true;
             selectSesion.innerHTML = '<option value="">-- Primero selecciona persona --</option>';
-            // Limpiar gráfico
             updateChart('', '');
         }
     });
 
-    // Selector de sesión para gráfico
     document.getElementById('selectSesionGrafico').addEventListener('change', (e) => {
         const personaId = document.getElementById('selectPersonaGrafico').value;
-        const sessionId = e.target.value;
-        console.log('🔄 Sesión seleccionada:', sessionId, 'Persona:', personaId);
         if (!personaId) return;
-        updateChart(sessionId, personaId);
+        updateChart(e.target.value, personaId);
     });
 
-    // Botón refrescar gráfico
     document.getElementById('btnRefreshChart').addEventListener('click', () => {
         const personaId = document.getElementById('selectPersonaGrafico').value;
         const sesionId = document.getElementById('selectSesionGrafico').value;
         updateChart(sesionId, personaId);
     });
 
-    // Exportar CSV
     document.getElementById('btnExportCSV').addEventListener('click', exportarCSV);
 
-    // Refrescar historial
     document.getElementById('btnRefreshHistory').addEventListener('click', () => renderHistorial());
 
-    // Filtro de personas en historial
     document.getElementById('selectPersonaHistorial').addEventListener('change', (e) => {
         renderHistorial(e.target.value);
     });
@@ -335,7 +245,6 @@ function checkSensor() {
         return;
     }
 
-    // Buscar info del sensor seleccionado
     const sensor = app.sensores.find(s => (s.id || s.ip) === sensorId);
 
     if (!sensor || !sensor.ip) {
@@ -344,19 +253,11 @@ function checkSensor() {
     }
 
     const sensorName = sensor.nombre || sensor.id || sensor.ip;
-    const targetIp = sensor.ip;
+    const message = `${sensor.ip}:Check`;
 
-    // Formato: <targetIp>:Check
-    const message = `${targetIp}:Check`;
-
-    // Enviar a Node-RED que lo reenviará al MQTT
     if (typeof uibuilder !== 'undefined') {
-        uibuilder.send({
-            topic: 'esp32/commands',
-            payload: message
-        });
+        uibuilder.send({ topic: 'esp32/commands', payload: message });
         showToast('Comando Enviado', `Comprobando sensor: ${sensorName}`, 'info');
-        console.log(`📡 Comando MQTT: ${message}`);
     }
 }
 
@@ -381,8 +282,6 @@ function iniciarSesion() {
     const targetIP = sensor.ip;
 
     const persona = app.personas.find(p => p.id == personaId);
-
-    // Generar nombre de sesión
     const nombreSesion = descripcion ||
         `${persona ? persona.nombre : 'Desconocido'} - ${new Date().toLocaleDateString('es-ES')}`;
 
@@ -400,27 +299,26 @@ function iniciarSesion() {
         min: 999
     };
 
-    // Actualizar UI principal
     const alertEl = document.getElementById('alertEstado');
     alertEl.className = 'alert mt-3 mb-0 alert-success';
     document.getElementById('estadoTexto').innerHTML =
         `<strong>CAPTURANDO</strong> - ${app.sesionActiva.persona_nombre}`;
 
-    // Actualizar UI del modal
     document.getElementById('modalAlertEstado').className = 'alert alert-success';
     document.getElementById('modalEstadoTexto').innerHTML = '<strong>SESIÓN ACTIVA</strong> - Capturando datos';
     document.getElementById('btnModalIniciar').disabled = true;
     document.getElementById('btnModalDetener').disabled = false;
 
-    const message = `${targetIP}:StartSession`;
-    // Enviar a Node-RED
     if (typeof uibuilder !== 'undefined') {
-        uibuilder.send({ topic: 'session/start', payload: message });
+        uibuilder.send({ topic: 'session/start', payload: `${targetIP}:StartSession` });
     }
 
     showToast('Sesión Iniciada', `Capturando datos de ${app.sesionActiva.persona_nombre}`, 'success');
 
-    // Limpiar estadísticas y gráfico de tiempo real
+    startSessionTimer();
+    resetAdaptaciones();
+    ejercicioMode.effectiveReps = parseInt(document.getElementById('targetReps')?.value || '0');
+    ejercicioMode.effectiveTime = parseInt(document.getElementById('targetTime')?.value || '0');
     resetStats();
     clearModalChart();
     resetFatigaDetection();
@@ -428,12 +326,10 @@ function iniciarSesion() {
 function detenerSesion() {
     if (!app.sesionActiva) return;
 
-    // Obtener el sensor que se usó en la sesión
     const sensorId = document.getElementById('selectSensor').value;
     const sensor = app.sensores.find(s => (s.id || s.ip) === sensorId);
     const targetIP = sensor ? sensor.ip : null;
 
-    // Calcular estadísticas finales
     app.sesionActiva.fecha_fin = new Date().toISOString();
     app.sesionActiva.estado = 'finalizada';
     app.sesionActiva.total_muestras = app.sesionActiva.muestras;
@@ -448,65 +344,43 @@ function detenerSesion() {
         app.sesionActiva.emg_min = 0;
     }
 
-    // Enviar comando StopSession al ESP32
     if (targetIP && typeof uibuilder !== 'undefined') {
-        const stopMessage = `${targetIP}:StopSession`;
-        uibuilder.send({
-            topic: 'esp32/commands',
-            payload: stopMessage
-        });
+        uibuilder.send({ topic: 'esp32/commands', payload: `${targetIP}:StopSession` });
     }
 
-    // Guardar sesión localmente
     app.sesionesFinalizadas.push({ ...app.sesionActiva });
     localStorage.setItem('sesionesFinalizadas', JSON.stringify(app.sesionesFinalizadas));
     localStorage.setItem('emgData_' + app.sesionActiva.id, JSON.stringify(app.sesionActiva.datos));
 
-    // Enviar sesión a Node-RED para guardar en base de datos
     if (typeof uibuilder !== 'undefined') {
-        uibuilder.send({
-            topic: 'session/stop',
-            payload: app.sesionActiva
-        });
+        uibuilder.send({ topic: 'session/stop', payload: app.sesionActiva });
     }
+
+    stopSessionTimer();
 
     showToast('Sesión Finalizada',
         `${app.sesionActiva.total_muestras} muestras - Promedio: ${app.sesionActiva.emg_promedio.toFixed(4)}`,
         'info');
 
-    // Resetear UI principal
     document.getElementById('inputDescripcionSesion').value = '';
 
     const alertEl = document.getElementById('alertEstado');
     alertEl.className = 'alert mt-3 mb-0';
     document.getElementById('estadoTexto').textContent = 'Sin sesión activa';
 
-    // Resetear UI del modal
     document.getElementById('modalAlertEstado').className = 'alert alert-warning';
     document.getElementById('modalEstadoTexto').textContent = 'Sin sesión activa';
     document.getElementById('btnModalIniciar').disabled = false;
     document.getElementById('btnModalDetener').disabled = true;
 
-    // Cerrar el modal si está abierto
-    if (app.modalSesion) {
-        app.modalSesion.hide();
-    }
+    if (app.modalSesion) app.modalSesion.hide();
 
     app.sesionActiva = null;
-
-    // Limpiar gráfico de tiempo real
     clearModalChart();
-
-    // Actualizar selects
     updateSesionesSelect();
 }
 
-// ===================================
-// ESTADÍSTICAS
-// ===================================
-
 function updateStats(emgValue) {
-    // Si hay una sesión activa, actualizar con datos en tiempo real
     if (app.sesionActiva && emgValue !== undefined) {
         app.sesionActiva.muestras++;
         app.sesionActiva.suma += emgValue;
@@ -523,7 +397,6 @@ function updateStats(emgValue) {
         return;
     }
 
-    // Si no hay sesión activa pero hay una sesión seleccionada en el gráfico
     const selectSesionGrafico = document.getElementById('selectSesionGrafico');
     const sessionId = selectSesionGrafico ? selectSesionGrafico.value : null;
 
@@ -536,7 +409,6 @@ function updateStats(emgValue) {
             document.getElementById('statUltimo').textContent = (session.emg_min || 0).toFixed(4);
         }
     } else if (!app.sesionActiva) {
-        // Reiniciar si no hay grabaciones ni selecciones
         resetStats();
     }
 }
@@ -547,10 +419,6 @@ function resetStats() {
     document.getElementById('statMax').textContent = '0.0000';
     document.getElementById('statUltimo').textContent = '0.0000';
 }
-
-// ===================================
-// GRÁFICO
-// ===================================
 
 function initChart() {
     const ctx = document.getElementById('chartEMG').getContext('2d');
@@ -612,7 +480,7 @@ function initChart() {
                                         `Máx: ${(sesion.emg_max || 0).toFixed(4)}`,
                                         `Mín: ${(sesion.emg_min || 0).toFixed(4)}`,
                                         '',
-                                        '👆 Clic para ver todos los valores'
+                                        'Clic para ver todos los valores'
                                     ];
                                 }
                             }
@@ -649,23 +517,18 @@ function initChart() {
                 mode: 'nearest'
             },
             onClick: (event, elements) => {
-                // Solo funciona en modo medias (cuando hay puntos de sesiones)
                 if (app.modoGrafico !== 'medias' || elements.length === 0) return;
 
                 const index = elements[0].index;
                 const sesion = app.sesionesEnGrafico[index];
 
                 if (sesion && sesion.id) {
-                    console.log('🖱️ Clic en sesión:', sesion.id, sesion);
                     const personaId = document.getElementById('selectPersonaGrafico').value;
-                    // Actualizar el selector de sesiones
                     document.getElementById('selectSesionGrafico').value = sesion.id;
-                    // Mostrar datos de la sesión
                     updateChart(sesion.id, personaId);
                 }
             },
             onHover: (event, elements) => {
-                // Cambiar cursor a pointer cuando está sobre un punto en modo medias
                 const canvas = event.native.target;
                 if (app.modoGrafico === 'medias' && elements.length > 0) {
                     canvas.style.cursor = 'pointer';
@@ -678,13 +541,10 @@ function initChart() {
 }
 
 async function updateChart(sessionId, personaId) {
-    console.log('📊 updateChart llamado con sessionId:', sessionId, 'personaId:', personaId);
-
     if (!app.chartEMG) return;
 
     const persona = personaId ? app.personas.find(p => p.id == personaId) : null;
 
-    // Si no hay persona seleccionada, mostrar mensaje
     if (!personaId) {
         app.chartEMG.data.labels = [];
         app.chartEMG.data.datasets[0].data = [];
@@ -698,9 +558,8 @@ async function updateChart(sessionId, personaId) {
     const sesionesFiltradas = app.sesionesFinalizadas.filter(s => s.persona_id == personaId);
 
     if (!sessionId || sessionId === '') {
-        // MODO 1: Mostrar medias de todas las sesiones de la persona
         app.modoGrafico = 'medias';
-        app.sesionesEnGrafico = sesionesFiltradas; // Guardar para el onClick
+        app.sesionesEnGrafico = sesionesFiltradas;
 
         if (sesionesFiltradas.length === 0) {
             app.chartEMG.data.labels = [];
@@ -710,7 +569,6 @@ async function updateChart(sessionId, personaId) {
             return;
         }
 
-        // Crear datos para gráfico de puntos (scatter) con medias
         const scatterData = sesionesFiltradas.map((s, i) => ({
             x: i + 1,
             y: s.emg_promedio || 0
@@ -746,31 +604,22 @@ async function updateChart(sessionId, personaId) {
         app.chartEMG.options.scales.y.title.text = 'Media EMG';
 
     } else {
-        // MODO 2: Mostrar TODOS los valores EMG de una sesión específica
         app.modoGrafico = 'detalle';
-        app.sesionesEnGrafico = []; // Limpiar
+        app.sesionesEnGrafico = [];
 
         const session = sesionesFiltradas.find(s => s.id == sessionId);
         let emgData = [];
 
-        console.log(`📊 Cargando datos de sesión ID: ${sessionId}`);
-
         try {
-            const url = `/api/sesion/${sessionId}/datos`;
-            console.log(`🌐 Fetching: ${url}`);
-            const res = await fetch(url);
-            console.log(`📡 Response status: ${res.status}`);
+            const res = await fetch(`/api/sesion/${sessionId}/datos`);
             if (res.ok) {
                 const result = await res.json();
-                console.log(`📦 Result:`, result);
                 emgData = result.emg_values || [];
-                console.log(`✅ Datos EMG cargados: ${emgData.length} valores`);
             } else {
-                const errorText = await res.text();
-                console.log(`❌ Error API: ${res.status}`, errorText);
+                console.error('Error API datos EMG:', res.status);
             }
         } catch (e) {
-            console.error('⚠️ Error en fetch:', e);
+            console.error('Error cargando datos EMG:', e);
             emgData = JSON.parse(localStorage.getItem('emgData_' + sessionId)) || [];
         }
 
@@ -782,12 +631,9 @@ async function updateChart(sessionId, personaId) {
             return;
         }
 
-        // Crear labels para cada muestra
         const labels = emgData.map((_, i) => i + 1);
-
         const fecha = session ? new Date(session.fecha_inicio).toLocaleString('es-ES') : '';
 
-        // Configurar gráfico de línea con todos los valores
         app.chartEMG.data.labels = labels;
         app.chartEMG.data.datasets[0].data = emgData;
         app.chartEMG.data.datasets[0].label = `Valores EMG (${emgData.length} muestras)`;
@@ -810,20 +656,17 @@ async function updateChart(sessionId, personaId) {
         app.chartEMG.options.scales.y.title.text = 'Valor EMG';
     }
 
-    updateStats(); // <--- Actualizar las tarjetas de estadísticas con la sesión elegida
+    updateStats();
     app.chartEMG.update();
 }
 
 function updateSesionesSelect() {
-    // Resetear selector de sesiones a estado inicial (deshabilitado)
     const select = document.getElementById('selectSesionGrafico');
     select.innerHTML = '<option value="">-- Primero selecciona persona --</option>';
     select.disabled = true;
 
-    // Resetear selector de personas del gráfico
     document.getElementById('selectPersonaGrafico').value = '';
 
-    // Actualizar el selector de personas para el gráfico
     updatePersonasGraficoSelect();
 }
 
@@ -849,7 +692,7 @@ function updateSesionesSelectByPersona(personaId) {
     }
 
     select.disabled = false;
-    select.innerHTML = '<option value="">📊 Ver medias (o haz clic en el gráfico)</option>';
+    select.innerHTML = '<option value="">Ver medias (o haz clic en el gráfico)</option>';
 
     const sesionesFiltradas = app.sesionesFinalizadas.filter(s => s.persona_id == personaId);
 
@@ -873,10 +716,6 @@ function updateSesionesSelectByPersona(personaId) {
     });
 }
 
-// ===================================
-// PERSONAS
-// ===================================
-
 function agregarPersona(e) {
     e.preventDefault();
 
@@ -890,33 +729,11 @@ function agregarPersona(e) {
         return;
     }
 
-    const newId = app.personas.length > 0 ?
-        Math.max(...app.personas.map(p => p.id)) + 1 : 1;
-
-    const persona = {
-        id: newId,
-        nombre,
-        email: email || null,
-        telefono: telefono || null,
-        descripcion: descripcion || null,
-        fecha_creacion: new Date().toISOString()
-    };
-
-    app.personas.push(persona);
-    localStorage.setItem('personas', JSON.stringify(app.personas));
-
-    // Enviar a Node-RED
     if (typeof uibuilder !== 'undefined') {
-        uibuilder.send({ topic: 'persona/new', payload: persona });
+        uibuilder.send({ topic: 'persona/new', payload: { nombre, email: email || null, telefono: telefono || null, descripcion: descripcion || null } });
     }
 
-    // Resetear formulario
     e.target.reset();
-
-    // Actualizar UI
-    renderPersonasSelect();
-    renderPersonas();
-    renderPersonasHistorialSelect();
 
     showToast('Persona Agregada', `${nombre} ha sido registrado`, 'success');
 }
@@ -924,7 +741,7 @@ function agregarPersona(e) {
 function renderPersonasSelect() {
     const select = document.getElementById('selectPersona');
     if (!select) {
-        console.error('❌ Element selectPersona not found');
+        console.error('Element selectPersona not found');
         return;
     }
 
@@ -941,11 +758,10 @@ function renderPersonasSelect() {
 function renderSensoresSelect() {
     const select = document.getElementById('selectSensor');
     if (!select) {
-        console.error('❌ Element selectSensor not found');
+        console.error('Element selectSensor not found');
         return;
     }
 
-    // Guardar el valor seleccionado actualmente
     const currentValue = select.value;
 
     select.innerHTML = '<option value="">-- Seleccionar --</option>';
@@ -954,17 +770,11 @@ function renderSensoresSelect() {
         const option = document.createElement('option');
         option.value = s.id || s.ip;
 
-        // Construir texto descriptivo
         let text = s.nombre || s.id || s.ip;
-        if (s.ip && s.ip !== s.id) {
-            text += ` [${s.ip}]`;
-        }
-        if (s.estado) {
-            text += ` - ${s.estado}`;
-        }
+        if (s.ip && s.ip !== s.id) text += ` [${s.ip}]`;
+        if (s.estado) text += ` - ${s.estado}`;
         option.textContent = text;
 
-        // Deshabilitar si está desconectado
         if (s.estado === 'desconectado') {
             option.disabled = true;
         }
@@ -972,7 +782,6 @@ function renderSensoresSelect() {
         select.appendChild(option);
     });
 
-    // Restaurar el valor seleccionado si todavía existe en la lista
     if (currentValue && select.querySelector(`option[value="${currentValue}"]`)) {
         select.value = currentValue;
     }
@@ -1024,30 +833,16 @@ function renderPersonasHistorialSelect() {
 function eliminarPersona(id) {
     if (!confirm('¿Eliminar esta persona?')) return;
 
-    // Enviar a Node-RED para eliminar de la base de datos
     if (typeof uibuilder !== 'undefined') {
         uibuilder.send({ topic: 'persona/delete', payload: { id: id } });
     }
 
-    // Actualizar estado local
-    app.personas = app.personas.filter(p => p.id !== id);
-    localStorage.setItem('personas', JSON.stringify(app.personas));
-
-    renderPersonasSelect();
-    renderPersonas();
-    renderPersonasHistorialSelect();
-
     showToast('Persona Eliminada', 'La persona ha sido eliminada', 'warning');
 }
-
-// ===================================
-// HISTORIAL
-// ===================================
 
 function renderHistorial(personaId = '') {
     const tbody = document.getElementById('historialBody');
 
-    // Filtrar sesiones por persona si se especifica
     let sesiones = app.sesionesFinalizadas;
     if (personaId) {
         sesiones = sesiones.filter(s => s.persona_id == personaId);
@@ -1073,8 +868,11 @@ function renderHistorial(personaId = '') {
             <td class="text-end"><span class="badge bg-success">${(s.emg_max || 0).toFixed(4)}</span></td>
             <td class="text-end"><span class="badge bg-warning text-dark">${(s.emg_min || 0).toFixed(4)}</span></td>
             <td class="text-center">
-                <button class="btn btn-sm btn-outline-primary" onclick="verSesion(${s.id})">
+                <button class="btn btn-sm btn-outline-primary me-1" onclick="verSesion(${s.id})" title="Ver sesión">
                     <i class="bi bi-eye"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-success" onclick="exportarSesionCSV(${s.id})" title="Exportar datos EMG">
+                    <i class="bi bi-file-earmark-spreadsheet"></i>
                 </button>
             </td>
         </tr>
@@ -1082,18 +880,23 @@ function renderHistorial(personaId = '') {
 }
 
 function verSesion(id) {
+    const sesion = app.sesionesFinalizadas.find(s => s.id == id);
+    if (!sesion) return;
+
+    const personaId = sesion.persona_id;
+
+    document.getElementById('selectPersonaGrafico').value = personaId;
+    updateSesionesSelectByPersona(personaId);
     document.getElementById('selectSesionGrafico').value = id;
-    updateChart(id);
+    updateChart(id, personaId);
     showPage('sesiones');
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
     document.querySelector('[data-page="sesiones"]').classList.add('active');
 }
 
 function exportarCSV() {
-    // Obtener filtro de persona si está seleccionado
     const personaId = document.getElementById('selectPersonaHistorial').value;
 
-    // Filtrar sesiones según la persona seleccionada
     let sesiones = app.sesionesFinalizadas;
     if (personaId) {
         sesiones = sesiones.filter(s => s.persona_id == personaId);
@@ -1114,7 +917,6 @@ function exportarCSV() {
     const a = document.createElement('a');
     a.href = url;
 
-    // Nombre del archivo según el filtro
     const fecha = new Date().toISOString().slice(0, 10);
     const personaNombre = personaId ? app.personas.find(p => p.id == personaId)?.nombre.replace(/\s+/g, '_') : '';
     a.download = `EMG_Sesions${personaNombre}_${fecha}.csv`;
@@ -1128,13 +930,44 @@ function exportarCSV() {
     showToast('Exportación Completa', mensaje, 'success');
 }
 
-// ===================================
-// DATOS DESDE API
-// ===================================
+async function exportarSesionCSV(id) {
+    const sesion = app.sesionesFinalizadas.find(s => s.id == id);
+
+    let datos = [];
+    try {
+        const res = await fetch(`/api/sesion/${id}/datos`);
+        if (res.ok) {
+            const result = await res.json();
+            datos = result.datos || [];
+        }
+    } catch (e) {}
+
+    if (datos.length === 0) {
+        showToast('Error', 'No hay datos EMG para esta sesión', 'warning');
+        return;
+    }
+
+    const nombre = sesion?.persona_nombre?.replace(/\s+/g, '_') || 'desconocido';
+    const fecha = sesion?.fecha_inicio ? new Date(sesion.fecha_inicio).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+
+    let csv = 'muestra,timestamp,emg,valor_crudo,voltaje\n';
+    datos.forEach((d, i) => {
+        csv += `${i + 1},${d.timestamp_servidor || ''},${d.valor_emg ?? ''},${d.valor_crudo ?? ''},${d.voltaje ?? ''}\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `EMG_${nombre}_sesion${id}_${fecha}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    showToast('Exportación Completa', `${datos.length} muestras exportadas`, 'success');
+}
 
 async function loadLocalData() {
     try {
-        // Cargar personas desde API
         const personasRes = await fetch('/api/personas');
         if (personasRes.ok) {
             app.personas = await personasRes.json();
@@ -1142,59 +975,36 @@ async function loadLocalData() {
             renderPersonas();
             renderPersonasHistorialSelect();
             updatePersonasGraficoSelect();
-            console.log('✅ Personas cargadas desde API:', app.personas.length);
         }
-    } catch (e) {
-        console.log('⚠️ API personas no disponible, usando localStorage');
-        const personas = localStorage.getItem('personas');
-        if (personas) {
-            app.personas = JSON.parse(personas);
-            renderPersonasSelect();
-            renderPersonas();
-            renderPersonasHistorialSelect();
-            updatePersonasGraficoSelect();
-        }
-    }
+    } catch (e) {}
 
     try {
-        // Cargar sesiones desde API
         const sesionesRes = await fetch('/api/sesiones');
         if (sesionesRes.ok) {
             app.sesionesFinalizadas = await sesionesRes.json();
             updateSesionesSelect();
             renderHistorial();
             updateChart('');
-            console.log('✅ Sesiones cargadas desde API:', app.sesionesFinalizadas.length);
         }
     } catch (e) {
-        console.log('⚠️ API sesiones no disponible, usando localStorage');
         const sesiones = localStorage.getItem('sesionesFinalizadas');
         if (sesiones) {
             app.sesionesFinalizadas = JSON.parse(sesiones);
             updateSesionesSelect();
         }
     }
-
-    // Los sensores se reciben automáticamente vía MQTT desde el ESP32 Manager
-    // (topic: esp32/clients, cada 5 segundos)
-    console.log('ℹ️ Esperando lista de sensores desde ESP32 Manager (MQTT)...');
 }
 
 async function loadTestData() {
-    // Primero intentar cargar desde API
     try {
         const res = await fetch('/api/personas');
         if (res.ok) {
-            console.log('✅ API disponible, no se cargan datos de prueba');
             await loadLocalData();
             updateConnectionStatus(true);
             return;
         }
-    } catch (e) {
-        console.log('⚠️ API no disponible, cargando datos de prueba');
-    }
+    } catch (e) {}
 
-    // Datos de prueba para modo standalone (solo si API no disponible)
     if (app.personas.length === 0) {
         app.personas = [
             { id: 1, nombre: 'Juan García', email: 'juan@email.com', telefono: '+34 612345678' },
@@ -1204,7 +1014,6 @@ async function loadTestData() {
         localStorage.setItem('personas', JSON.stringify(app.personas));
     }
 
-    // Sensores de prueba
     if (app.sensores.length === 0) {
         app.sensores = [
             { id: 'ESP32_001', ip: '192.168.4.100', nombre: 'Sensor EMG Brazo', estado: 'conectado' },
@@ -1223,7 +1032,6 @@ async function loadTestData() {
         ];
         localStorage.setItem('sesionesFinalizadas', JSON.stringify(app.sesionesFinalizadas));
 
-        // Generar datos EMG de prueba
         app.sesionesFinalizadas.forEach(s => {
             const datos = [];
             for (let i = 0; i < s.total_muestras; i++) {
@@ -1244,10 +1052,6 @@ async function loadTestData() {
     updateConnectionStatus(true);
 }
 
-// ===================================
-// NOTIFICACIONES
-// ===================================
-
 function showToast(title, message, type = 'info') {
     const toast = document.getElementById('toastNotification');
     const titleEl = document.getElementById('toastTitle');
@@ -1256,7 +1060,6 @@ function showToast(title, message, type = 'info') {
     titleEl.textContent = title;
     messageEl.textContent = message;
 
-    // Color según tipo
     toast.className = 'toast';
     if (type === 'success') toast.classList.add('bg-success', 'text-white');
     else if (type === 'danger') toast.classList.add('bg-danger', 'text-white');
@@ -1267,15 +1070,10 @@ function showToast(title, message, type = 'info') {
     bsToast.show();
 }
 
-// ===================================
-// MODAL DE SESIÓN
-// ===================================
-
 function initModal() {
     app.modalSesion = new bootstrap.Modal(document.getElementById('modalSesion'));
     app.modalCalibracion = new bootstrap.Modal(document.getElementById('modalCalibracion'));
 
-    // Event listener para cuando se cierra el modal de calibración
     document.getElementById('modalCalibracion').addEventListener('hidden.bs.modal', function () {
         stopCalibrationPolling();
     });
@@ -1290,34 +1088,25 @@ function abrirModalSesion() {
         return;
     }
 
-    // Actualizar estado del modal
     if (app.sesionActiva) {
-        // Ya hay una sesión activa
         document.getElementById('modalAlertEstado').className = 'alert alert-success';
         document.getElementById('modalEstadoTexto').innerHTML = '<strong>SESIÓN ACTIVA</strong> - Capturando datos';
 
         document.getElementById('btnModalIniciar').disabled = true;
         document.getElementById('btnModalDetener').disabled = false;
     } else {
-        // Sin sesión activa
         document.getElementById('modalAlertEstado').className = 'alert alert-warning';
         document.getElementById('modalEstadoTexto').textContent = 'Sin sesión activa';
 
         document.getElementById('btnModalIniciar').disabled = false;
         document.getElementById('btnModalDetener').disabled = true;
 
-        // Limpiar el gráfico del modal si no hay sesión activa
         clearModalChart();
     }
 
     app.modalSesion.show();
 }
 
-// ===================================
-// GRÁFICO DE TIEMPO REAL DEL MODAL
-// ===================================
-
-// Inicializar gráfico del modal
 function initModalChart() {
     const ctx = document.getElementById('chartModalRealTime').getContext('2d');
 
@@ -1389,18 +1178,12 @@ function initModalChart() {
     });
 }
 
-// ===================================
-// DETECCIÓN DE FATIGA MUSCULAR
-// ===================================
-
-// Calcular RMS (Root Mean Square) de un array de valores
 function calculateRMS(values) {
     if (values.length === 0) return 0;
     const sum = values.reduce((acc, val) => acc + (val * val), 0);
     return Math.sqrt(sum / values.length);
 }
 
-// Calcular desviación estándar
 function calculateStdDev(values) {
     if (values.length === 0) return 0;
     const mean = values.reduce((acc, val) => acc + val, 0) / values.length;
@@ -1408,100 +1191,58 @@ function calculateStdDev(values) {
     return Math.sqrt(variance);
 }
 
-// Analizar fatiga muscular en tiempo real
 function analyzeFatigue(emgValue) {
     const fatiga = app.fatigaData;
 
-    // Fase 1: Establecer baseline (primeros 20 valores)
-    if (!fatiga.baselineSet) {
-        fatiga.baseline.push(emgValue);
-
-        if (fatiga.baseline.length >= fatiga.windowSize) {
-            fatiga.rmsBaseline = calculateRMS(fatiga.baseline);
-            fatiga.baselineSet = true;
-            console.log('✅ Baseline establecido, RMS:', fatiga.rmsBaseline.toFixed(2));
-        }
-
-        // Durante baseline, no hay fatiga
-        fatiga.fatigaIndex = 0;
-        fatiga.trend = 'estable';
-        fatiga.debugInfo = {
-            emgValue: emgValue,
-            rmsActual: 0,
-            stdDevActual: 0,
-            rmsIncrease: 0,
-            variabilityFactor: 0
-        };
-        updateFatigaUI();
-        return;
-    }
-
-    // Fase 2: Análisis continuo con ventana deslizante
     fatiga.currentWindow.push(emgValue);
-
-    // Mantener solo los últimos N valores
     if (fatiga.currentWindow.length > fatiga.windowSize) {
         fatiga.currentWindow.shift();
     }
 
-    // Calcular métricas actuales
+    if (fatiga.currentWindow.length < fatiga.windowSize) {
+        fatiga.fatigaIndex = 0;
+        fatiga.trend = 'estable';
+        updateFatigaUI();
+        return;
+    }
+
     const rmsActual = calculateRMS(fatiga.currentWindow);
     const stdDevActual = calculateStdDev(fatiga.currentWindow);
 
-    // Calcular índice de fatiga/inestabilidad basado en:
-    // 1. Cambio absoluto de RMS (aumenta O disminuye mucho)
-    // 2. Variabilidad alta (señal irregular)
-    // 3. Desviación respecto al baseline
+    fatiga.rmsHistory.push(rmsActual);
+    if (fatiga.rmsHistory.length > 30) fatiga.rmsHistory.shift();
 
-    const rmsChange = Math.abs(rmsActual - fatiga.rmsBaseline); // Cambio absoluto
-    const rmsChangePercent = (rmsChange / fatiga.rmsBaseline) * 100;
-    const variabilityFactor = stdDevActual / (fatiga.rmsBaseline + 1); // +1 para evitar división por 0
-
-    // Índice de fatiga/inestabilidad (0-100) - ALGORITMO V3
-    let fatigaIndex = 0;
-
-    // Componente 1: Cambio ABSOLUTO de RMS (detecta tanto aumento como caída)
-    fatigaIndex += Math.min(rmsChangePercent * 1.5, 50); // Máximo 50 puntos
-
-    // Componente 2: Variabilidad extrema (desviación estándar alta)
-    fatigaIndex += Math.min(variabilityFactor * 60, 50); // Máximo 50 puntos
-
-    // BONUS: Si la desviación estándar es MUY alta (>30% del baseline), penalización extra
-    const stdDevPercent = (stdDevActual / fatiga.rmsBaseline) * 100;
-    if (stdDevPercent > 30) {
-        fatigaIndex += 20; // +20 puntos por inestabilidad extrema
+    if (fatiga.rmsHistory.length < 10) {
+        fatiga.fatigaIndex = 0;
+        fatiga.trend = 'estable';
+        updateFatigaUI();
+        return;
     }
 
-    // Limitar entre 0 y 100
-    fatigaIndex = Math.max(0, Math.min(100, fatigaIndex));
+    fatiga.baselineSet = true;
 
-    // Determinar tendencia
-    let trend = 'estable';
-    if (fatigaIndex < 30) {
-        trend = 'estable';
-    } else if (fatigaIndex < 60) {
-        trend = 'incrementando';
-    } else {
-        trend = 'alta';
-    }
+    const half = Math.floor(fatiga.rmsHistory.length / 2);
+    const earlyRMS = fatiga.rmsHistory.slice(0, half).reduce((a, b) => a + b, 0) / half;
+    const recentRMS = fatiga.rmsHistory.slice(half).reduce((a, b) => a + b, 0) / (fatiga.rmsHistory.length - half);
 
-    // Actualizar estado
+    const rmsIncrease = earlyRMS > 0.001 ? ((recentRMS - earlyRMS) / earlyRMS) * 100 : 0;
+
+    let fatigaIndex = Math.max(0, Math.min(100, rmsIncrease * 2));
+
     fatiga.fatigaIndex = fatigaIndex;
-    fatiga.trend = trend;
+    fatiga.trend = fatigaIndex >= 60 ? 'alta' : fatigaIndex >= 30 ? 'incrementando' : 'estable';
+    fatiga.rmsBaseline = earlyRMS;
     fatiga.debugInfo = {
         emgValue: emgValue,
         rmsActual: rmsActual,
         stdDevActual: stdDevActual,
-        rmsIncrease: rmsChangePercent, // Ahora es cambio absoluto (%)
-        variabilityFactor: variabilityFactor,
-        stdDevPercent: stdDevPercent
+        rmsIncrease: rmsIncrease,
+        variabilityFactor: earlyRMS > 0 ? recentRMS / earlyRMS : 1
     };
 
-    // Actualizar UI
     updateFatigaUI();
 }
 
-// Actualizar indicador visual de fatiga en la UI
 function updateFatigaUI() {
     const fatiga = app.fatigaData;
     const indicator = document.getElementById('fatigaIndicator');
@@ -1511,7 +1252,6 @@ function updateFatigaUI() {
 
     if (!indicator || !bar || !text || !status) return;
 
-    // Mostrar indicador solo si baseline está establecido
     if (!fatiga.baselineSet) {
         indicator.style.display = 'none';
         return;
@@ -1519,10 +1259,8 @@ function updateFatigaUI() {
 
     indicator.style.display = 'block';
 
-    // Actualizar barra de progreso
     bar.style.width = `${fatiga.fatigaIndex}%`;
 
-    // Cambiar color según nivel
     if (fatiga.fatigaIndex < 30) {
         bar.className = 'progress-bar bg-success';
         status.textContent = '✓ Señal estable';
@@ -1537,89 +1275,73 @@ function updateFatigaUI() {
         status.className = 'badge bg-danger';
     }
 
-    // Actualizar texto
     text.textContent = `${fatiga.fatigaIndex.toFixed(0)}%`;
 
-    // Actualizar valores de debug
+    checkAdaptation(fatiga.fatigaIndex);
+
     if (fatiga.debugInfo) {
         const debug = fatiga.debugInfo;
 
-        // Baseline
         const baselineEl = document.getElementById('debugBaseline');
         if (baselineEl) baselineEl.textContent = fatiga.rmsBaseline.toFixed(2);
 
-        // RMS Actual
         const rmsActualEl = document.getElementById('debugRMSActual');
         if (rmsActualEl) rmsActualEl.textContent = debug.rmsActual.toFixed(2);
 
-        // Aumento RMS
         const rmsIncreaseEl = document.getElementById('debugRMSIncrease');
         if (rmsIncreaseEl) {
-            const increase = debug.rmsIncrease.toFixed(1);
-            rmsIncreaseEl.textContent = `${increase}%`;
+            rmsIncreaseEl.textContent = `${debug.rmsIncrease.toFixed(1)}%`;
             rmsIncreaseEl.className = debug.rmsIncrease > 10 ? 'text-warning' : 'text-success';
         }
 
-        // Std Dev
         const stdDevEl = document.getElementById('debugStdDev');
         if (stdDevEl) stdDevEl.textContent = debug.stdDevActual.toFixed(2);
 
-        // Valor EMG
         const emgValueEl = document.getElementById('debugEMGValue');
         if (emgValueEl) emgValueEl.textContent = debug.emgValue.toFixed(0);
 
-        // Variabilidad
         const variabilityEl = document.getElementById('debugVariability');
         if (variabilityEl) {
-            const varVal = debug.variabilityFactor.toFixed(3);
-            variabilityEl.textContent = varVal;
+            variabilityEl.textContent = debug.variabilityFactor.toFixed(3);
             variabilityEl.className = debug.variabilityFactor > 0.5 ? 'text-warning' : 'text-success';
         }
     }
 }
 
-// Resetear detección de fatiga al iniciar nueva sesión
 function resetFatigaDetection() {
     app.fatigaData = {
-        baseline: [],
         baselineSet: false,
         rmsBaseline: 0,
         windowSize: 20,
         currentWindow: [],
+        rmsHistory: [],
         fatigaIndex: 0,
         trend: 'estable'
     };
 
-    // Ocultar indicador
     const indicator = document.getElementById('fatigaIndicator');
     if (indicator) {
         indicator.style.display = 'none';
     }
 }
 
-// Actualizar gráfico del modal
 function updateModalChart(emgValue) {
     if (!app.chartModalRealTime) return;
 
-    // Analizar fatiga muscular
     analyzeFatigue(emgValue);
 
-    // Agregar nuevo valor
     app.modalRealtimeData.push(emgValue);
 
-    // Mantener solo los últimos N puntos
     if (app.modalRealtimeData.length > app.maxRealtimePoints) {
         app.modalRealtimeData.shift();
     }
 
-    // Actualizar gráfico
     app.chartModalRealTime.data.labels = app.modalRealtimeData.map((_, i) => i + 1);
     app.chartModalRealTime.data.datasets[0].data = app.modalRealtimeData;
     app.chartModalRealTime.options.plugins.title.text = `Capturando (${app.sesionActiva ? app.sesionActiva.muestras : 0} muestras)`;
     app.chartModalRealTime.update('none');
 }
 
-// Limpiar gráfico del modal
 function clearModalChart() {
     if (!app.chartModalRealTime) return;
 
@@ -1630,10 +1352,6 @@ function clearModalChart() {
     app.chartModalRealTime.update();
 }
 
-// ===================================
-// CALIBRACIÓN DEL SENSOR
-// ===================================
-
 function abrirModalCalibracion() {
     const sensorId = document.getElementById('selectSensor').value;
 
@@ -1642,7 +1360,6 @@ function abrirModalCalibracion() {
         return;
     }
 
-    // Guardar el sensor actual
     app.sensorActual = app.sensores.find(s => (s.id || s.ip) === sensorId);
 
     if (!app.sensorActual || !app.sensorActual.ip) {
@@ -1650,10 +1367,7 @@ function abrirModalCalibracion() {
         return;
     }
 
-    // Resetear UI
     resetCalibrationUI();
-
-    // Abrir modal
     app.modalCalibracion.show();
 }
 
@@ -1675,40 +1389,31 @@ function resetCalibrationUI() {
 function iniciarCalibracion() {
     if (!app.sensorActual) return;
 
-    // Enviar comando de calibración vía MQTT
     const targetIp = app.sensorActual.ip;
     const message = `${targetIp}:Calibrate`;
 
     if (typeof uibuilder !== 'undefined') {
-        uibuilder.send({
-            topic: 'esp32/commands',
-            payload: message
-        });
+        uibuilder.send({ topic: 'esp32/commands', payload: message });
     }
 
     app.calibracionActiva = true;
-    app.calibracionStartTime = Date.now();
 
-    // Actualizar UI
     document.getElementById('btnStartCalibration').classList.add('d-none');
     document.getElementById('btnCancelCalibration').classList.remove('d-none');
     document.getElementById('btnCloseCalibration').disabled = true;
 
-    // Iniciar polling de estado
     startCalibrationPolling();
 
     showToast('Calibración Iniciada', 'Siga las instrucciones en pantalla', 'info');
 }
 
 function startCalibrationPolling() {
-    // Consultar estado cada 500ms
     app.calibracionInterval = setInterval(() => {
         if (!app.calibracionActiva || !app.sensorActual) {
             stopCalibrationPolling();
             return;
         }
 
-        // Solicitar estado de calibración
         const targetIp = app.sensorActual.ip;
         const message = `${targetIp}:CalibrationStatus`;
 
@@ -1811,10 +1516,551 @@ function updateCalibrationUI(status) {
 
 function cancelarCalibracion() {
     stopCalibrationPolling();
+
+    if (app.sensorActual) {
+        const message = `${app.sensorActual.ip}:CancelCalibration`;
+        if (typeof uibuilder !== 'undefined') {
+            uibuilder.send({ topic: 'esp32/commands', payload: message });
+        }
+    }
+
     app.modalCalibracion.hide();
     showToast('Calibración Cancelada', '', 'warning');
+}
+
+const ejercicioMode = {
+    mode: 'adaptativo',
+    lastAdaptation: 0,
+    COOLDOWN: 15000,
+    HIGH_THRESHOLD: 65,
+    adaptationCount: 0,
+    effectiveReps: 0,
+    effectiveTime: 0,
+    REPS_STEP: 1,
+    TIME_STEP: 15,
+    MIN_REPS: 3,
+};
+
+function initModoEjercicio() {
+    document.querySelectorAll('input[name="modoEjercicio"]').forEach(radio => {
+        radio.addEventListener('change', e => {
+            ejercicioMode.mode = e.target.value;
+            if (ejercicioMode.mode === 'estricto') {
+                showToast('Modo Estricto', 'Reps y tiempo fijos durante toda la sesión', 'info');
+            } else {
+                showToast('Modo Adaptativo', 'Los objetivos se ajustarán según la fatiga muscular detectada', 'info');
+            }
+        });
+    });
+}
+
+function checkAdaptation(fatigaIndex) {
+    if (ejercicioMode.mode !== 'adaptativo') return;
+    if (!app.sesionActiva) return;
+
+    const now = Date.now();
+    if (now - ejercicioMode.lastAdaptation < ejercicioMode.COOLDOWN) return;
+    if (fatigaIndex < ejercicioMode.HIGH_THRESHOLD) return;
+
+    ejercicioMode.lastAdaptation = now;
+    ejercicioMode.adaptationCount++;
+
+    const cambios = [];
+
+    if (ejercicioMode.effectiveReps > 0) {
+        const prev = ejercicioMode.effectiveReps;
+        ejercicioMode.effectiveReps = Math.max(ejercicioMode.MIN_REPS, prev - ejercicioMode.REPS_STEP);
+        if (ejercicioMode.effectiveReps !== prev) {
+            cambios.push(`Reps ${prev} → ${ejercicioMode.effectiveReps}`);
+            syncSelectToValue(document.getElementById('targetReps'), ejercicioMode.effectiveReps, 'down');
+        }
+    }
+
+    if (ejercicioMode.effectiveTime > 0) {
+        const prev = ejercicioMode.effectiveTime;
+        ejercicioMode.effectiveTime = prev + ejercicioMode.TIME_STEP;
+        cambios.push(`Tiempo ${formatTime(prev)} → ${formatTime(ejercicioMode.effectiveTime)}`);
+        syncSelectToValue(document.getElementById('targetTime'), ejercicioMode.effectiveTime, 'up');
+    }
+
+    if (cambios.length === 0) return;
+
+    updateRepsGoalDisplay();
+    flashTimerValues();
+
+    const logEl  = document.getElementById('adaptacionLog');
+    const textEl = document.getElementById('adaptacionLogText');
+    const badge  = document.getElementById('adaptacionBadge');
+    if (logEl && textEl && badge) {
+        logEl.classList.remove('d-none');
+        textEl.textContent = `#${ejercicioMode.adaptationCount} — Fatiga ${fatigaIndex.toFixed(0)}%: ${cambios.join(' | ')}`;
+        badge.textContent  = ejercicioMode.adaptationCount;
+    }
+
+    showToast(`Adaptación #${ejercicioMode.adaptationCount}`,
+        `Fatiga alta (${fatigaIndex.toFixed(0)}%). ${cambios.join(' | ')}`, 'warning');
+}
+
+function syncSelectToValue(selectEl, targetValue, direction) {
+    if (!selectEl) return;
+    const values = Array.from(selectEl.options)
+        .map(o => parseInt(o.value))
+        .filter(v => v > 0)
+        .sort((a, b) => a - b);
+
+    let chosen;
+    if (direction === 'down') {
+        chosen = [...values].reverse().find(v => v <= targetValue) ?? values[0];
+    } else {
+        chosen = values.find(v => v >= targetValue) ?? values[values.length - 1];
+    }
+    selectEl.value = chosen;
+}
+
+function resetAdaptaciones() {
+    ejercicioMode.lastAdaptation = 0;
+    ejercicioMode.adaptationCount = 0;
+    ejercicioMode.effectiveReps = 0;
+    ejercicioMode.effectiveTime = 0;
+    const logEl = document.getElementById('adaptacionLog');
+    if (logEl) logEl.classList.add('d-none');
+}
+
+const sessionTimer = {
+    interval: null,
+    startTime: null
+};
+
+function startSessionTimer() {
+    sessionTimer.startTime = Date.now();
+
+    const timerRow = document.getElementById('sessionTimerRow');
+    timerRow.classList.remove('d-none');
+
+    updateCountdownDisplay();
+    updateRepsGoalDisplay();
+
+    if (sessionTimer.interval) clearInterval(sessionTimer.interval);
+    sessionTimer.interval = setInterval(tickTimer, 1000);
+    tickTimer();
+}
+
+function stopSessionTimer() {
+    if (sessionTimer.interval) {
+        clearInterval(sessionTimer.interval);
+        sessionTimer.interval = null;
+    }
+    document.getElementById('sessionTimerRow').classList.add('d-none');
+    document.getElementById('sessionTimerDisplay').textContent = '00:00';
+    document.getElementById('sessionCountdown').textContent = '--:--';
+    document.getElementById('sessionCountdown').className = 'session-timer font-monospace';
+    document.getElementById('sessionCountdown').classList.remove('timer-warning');
+}
+
+function tickTimer() {
+    const elapsed = Math.floor((Date.now() - sessionTimer.startTime) / 1000);
+    document.getElementById('sessionTimerDisplay').textContent = formatTime(elapsed);
+
+    const targetSecs  = parseInt(document.getElementById('targetTime')?.value || '0');
+    const countdownEl = document.getElementById('sessionCountdown');
+
+    if (targetSecs > 0) {
+        const remaining = targetSecs - elapsed;
+        if (remaining <= 0) {
+            countdownEl.textContent = '00:00';
+            setCountdownColor(countdownEl, 'danger');
+            if (remaining === 0) {
+                showToast('¡Tiempo completado!', `Objetivo de ${formatTime(targetSecs)} alcanzado`, 'success');
+            }
+        } else {
+            countdownEl.textContent = formatTime(remaining);
+            if (remaining <= 10) {
+                setCountdownColor(countdownEl, 'danger');
+            } else if (remaining <= 30) {
+                setCountdownColor(countdownEl, 'warning');
+            } else {
+                setCountdownColor(countdownEl, 'normal');
+            }
+        }
+    } else {
+        countdownEl.textContent = '--:--';
+        setCountdownColor(countdownEl, 'none');
+    }
+}
+
+function setCountdownColor(el, state) {
+    // Mientras el flash esté activo no tocamos los colores
+    if (el.dataset.flashing) return;
+
+    el.classList.remove('timer-normal', 'timer-caution', 'timer-urgent', 'timer-warning');
+    el.style.color = ''; // limpiar cualquier inline residual
+
+    const map = { danger: 'timer-urgent', warning: 'timer-caution', normal: 'timer-normal', none: 'timer-normal' };
+    el.classList.add(map[state] ?? 'timer-normal');
+    if (state === 'danger') el.classList.add('timer-warning'); // mantiene el pulso al llegar a 0
+}
+
+function updateCountdownDisplay() {
+    // Si hay sesión activa, muestra el tiempo restante real; si no, el objetivo completo
+    const targetSecs  = parseInt(document.getElementById('targetTime')?.value || '0');
+    const countdownEl = document.getElementById('sessionCountdown');
+    if (targetSecs <= 0) {
+        countdownEl.textContent = '--:--';
+        countdownEl.className = 'fw-bold font-monospace';
+        return;
+    }
+    if (sessionTimer.startTime) {
+        const elapsed   = Math.floor((Date.now() - sessionTimer.startTime) / 1000);
+        const remaining = Math.max(0, targetSecs - elapsed);
+        countdownEl.textContent = formatTime(remaining);
+    } else {
+        countdownEl.textContent = formatTime(targetSecs);
+    }
+    countdownEl.className = 'fw-bold font-monospace text-light';
+}
+
+function flashTimerValues() {
+    ['sessionCountdown', 'repsGoalDisplay'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+
+        el.dataset.flashing = '1';
+
+        anime({
+            targets: el,
+            color: ['#e2e8f0', '#f59e0b', '#fbbf24', '#e2e8f0'],
+            duration: 700,
+            easing: 'easeInOutSine',
+            complete: () => {
+                el.style.color = ''; // limpiar inline para que las clases CSS tomen el control
+                delete el.dataset.flashing;
+            }
+        });
+    });
+}
+
+function updateRepsGoalDisplay() {
+    const targetReps = parseInt(document.getElementById('targetReps')?.value || '0');
+    const container  = document.getElementById('repsGoalContainer');
+    const divider    = document.getElementById('repsGoalDivider');
+    if (targetReps > 0) {
+        container.classList.remove('d-none');
+        if (divider) divider.classList.remove('d-none');
+        document.getElementById('repsGoalDisplay').textContent = `${cvState.repCount}/${targetReps}`;
+    } else {
+        container.classList.add('d-none');
+        if (divider) divider.classList.add('d-none');
+    }
+}
+
+function formatTime(seconds) {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+}
+
+const webcam = {
+    stream: null,
+    flipped: false
+};
+
+function initWebcam() {
+    document.getElementById('btnActivarWebcam').addEventListener('click', startWebcam);
+    document.getElementById('btnDesactivarWebcam').addEventListener('click', stopWebcam);
+    document.getElementById('btnFlipWebcam').addEventListener('click', flipWebcam);
+    document.getElementById('modalSesion').addEventListener('hidden.bs.modal', stopWebcam);
+}
+
+async function startWebcam() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showToast('Webcam no disponible', 'Tu navegador no soporta acceso a la cámara', 'danger');
+        return;
+    }
+    try {
+        webcam.stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        const video = document.getElementById('webcamVideo');
+        video.srcObject = webcam.stream;
+
+        document.getElementById('webcamPlaceholder').classList.add('d-none');
+        document.getElementById('webcamWrapper').classList.remove('d-none');
+        const controls = document.getElementById('webcamControls');
+        controls.classList.remove('d-none');
+        controls.classList.add('d-flex');
+    } catch (err) {
+        const msg = err.name === 'NotAllowedError'
+            ? 'Permiso denegado. Permite el acceso a la cámara en el navegador.'
+            : 'No se pudo acceder a la cámara: ' + err.message;
+        showToast('Error de cámara', msg, 'danger');
+    }
+}
+
+function stopWebcam() {
+    stopTracking();
+
+    if (webcam.stream) {
+        webcam.stream.getTracks().forEach(t => t.stop());
+        webcam.stream = null;
+    }
+
+    const video = document.getElementById('webcamVideo');
+    if (video) { video.srcObject = null; }
+
+    webcam.flipped = false;
+    document.getElementById('webcamWrapper').classList.add('d-none');
+    document.getElementById('webcamPlaceholder').classList.remove('d-none');
+
+    const controls = document.getElementById('webcamControls');
+    controls.classList.add('d-none');
+    controls.classList.remove('d-flex');
+}
+
+function flipWebcam() {
+    webcam.flipped = !webcam.flipped;
+    document.getElementById('webcamVideo').classList.toggle('flipped', webcam.flipped);
+    document.getElementById('cvCanvas').classList.toggle('flipped', webcam.flipped);
+}
+
+const cvState = {
+    pose: null,
+    tracking: false,
+    animFrame: null,
+    targetY: null,       // 0-1 normalizado (null = no fijado)
+    repCount: 0,
+    repState: 'below',   // 'above' | 'below'
+    landmarkIdx: 16,     // índice MediaPipe Pose
+    lastY: null,
+    HYSTERESIS: 0.04     // margen para evitar doble conteo
+};
+
+function initCV() {
+    document.getElementById('btnIniciarTracking').addEventListener('click', startTracking);
+    document.getElementById('btnPararTracking').addEventListener('click', stopTracking);
+    document.getElementById('btnFijarObjetivo').addEventListener('click', setTargetFromLandmark);
+    document.getElementById('btnResetReps').addEventListener('click', resetReps);
+    document.getElementById('selectLandmark').addEventListener('change', e => {
+        cvState.landmarkIdx = parseInt(e.target.value);
+    });
+    document.getElementById('cvCanvas').addEventListener('click', setTargetFromClick);
+}
+
+async function startTracking() {
+    if (!webcam.stream) {
+        showToast('Cámara requerida', 'Activa la cámara antes de iniciar el tracking', 'warning');
+        return;
+    }
+
+    if (!cvState.pose) {
+        showToast('Cargando modelo...', 'Inicializando MediaPipe Pose...', 'info');
+        try {
+            await loadPoseModel();
+        } catch (e) {
+            console.error('[CV] Error cargando modelo:', e);
+            showToast('Error al cargar modelo', String(e.message || e), 'danger');
+            return;
+        }
+    }
+
+    cvState.tracking = true;
+    cvState.repCount = 0;
+    cvState.repState = 'below';
+    cvState.targetY = null;
+    cvState.lastY = null;
+    updateRepDisplay();
+
+    document.getElementById('cvPanel').classList.remove('d-none');
+    document.getElementById('btnIniciarTracking').classList.add('d-none');
+
+    runTrackingLoop();
+}
+
+function stopTracking() {
+    if (!cvState.tracking && cvState.animFrame === null) return;
+
+    cvState.tracking = false;
+    if (cvState.animFrame) {
+        cancelAnimationFrame(cvState.animFrame);
+        cvState.animFrame = null;
+    }
+
+    const canvas = document.getElementById('cvCanvas');
+    if (canvas) {
+        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    document.getElementById('cvPanel').classList.add('d-none');
+    document.getElementById('btnIniciarTracking').classList.remove('d-none');
+}
+
+function loadPoseModel() {
+    return new Promise((resolve, reject) => {
+        if (typeof Pose === 'undefined') {
+            reject(new Error('El script pose.js no está cargado'));
+            return;
+        }
+        const base = window.location.href.replace(/\/[^/]*$/, '/');
+        const pose = new Pose({
+            locateFile: file => {
+                const safeFile = file.replace('simd_wasm_bin', 'wasm_bin');
+                return `${base}mediapipe/${safeFile}`;
+            }
+        });
+        pose.setOptions({
+            modelComplexity: 1,
+            smoothLandmarks: true,
+            enableSegmentation: false,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+        pose.onResults(processResults);
+        pose.initialize().then(() => {
+            cvState.pose = pose;
+            resolve();
+        }).catch(reject);
+    });
+}
+
+function runTrackingLoop() {
+    if (!cvState.tracking) return;
+
+    const video = document.getElementById('webcamVideo');
+    const canvas = document.getElementById('cvCanvas');
+
+    if (video && canvas && cvState.pose && video.readyState >= 2) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        cvState.pose.send({ image: video });
+    }
+
+    cvState.animFrame = requestAnimationFrame(runTrackingLoop);
+}
+
+function processResults(results) {
+    const canvas = document.getElementById('cvCanvas');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (!results.poseLandmarks) return;
+
+    const lm = results.poseLandmarks[cvState.landmarkIdx];
+    if (!lm || lm.visibility < 0.4) return;
+
+    const x = lm.x * canvas.width;
+    const y = lm.y * canvas.height;
+
+    ctx.beginPath();
+    ctx.arc(x, y, 12, 0, 2 * Math.PI);
+    ctx.fillStyle = 'rgba(59, 130, 246, 0.85)';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    if (cvState.targetY !== null) {
+        const targetPx = cvState.targetY * canvas.height;
+        const reached = lm.y < cvState.targetY;
+
+        ctx.setLineDash([12, 6]);
+        ctx.beginPath();
+        ctx.moveTo(0, targetPx);
+        ctx.lineTo(canvas.width, targetPx);
+        ctx.strokeStyle = reached ? 'rgba(74, 222, 128, 0.9)' : 'rgba(250, 204, 21, 0.9)';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = reached ? 'rgba(74, 222, 128, 0.9)' : 'rgba(250, 204, 21, 0.9)';
+        ctx.font = 'bold 13px Inter, sans-serif';
+        ctx.fillText('OBJETIVO', 8, targetPx - 7);
+
+        countRep(lm.y);
+    }
+
+    cvState.lastY = lm.y;
+}
+
+function countRep(currentY) {
+    const { targetY, repState, HYSTERESIS } = cvState;
+    if (targetY === null) return;
+
+    if (repState === 'below' && currentY < targetY) {
+        cvState.repCount++;
+        cvState.repState = 'above';
+        updateRepDisplay();
+        flashRepCounter();
+
+        const targetReps = parseInt(document.getElementById('targetReps')?.value || '0');
+        if (targetReps > 0) {
+            // Actualizar display reps en el timer
+            document.getElementById('repsGoalDisplay').textContent = `${cvState.repCount}/${targetReps}`;
+
+            // Actualizar barra de progreso
+            const pct = Math.min(100, (cvState.repCount / targetReps) * 100);
+            document.getElementById('repsProgressBar').classList.remove('d-none');
+            document.getElementById('repsProgressFill').style.width = `${pct}%`;
+
+            // Objetivo alcanzado
+            if (cvState.repCount >= targetReps) {
+                showToast('¡Objetivo alcanzado!', `Has completado ${cvState.repCount} repeticiones`, 'success');
+                document.getElementById('repsProgressFill').classList.remove('bg-info');
+                document.getElementById('repsProgressFill').classList.add('bg-success');
+            }
+        }
+    } else if (repState === 'above' && currentY > targetY + HYSTERESIS) {
+        cvState.repState = 'below';
+    }
+}
+
+function setTargetFromLandmark() {
+    if (cvState.lastY === null) {
+        showToast('Sin detección', 'El cuerpo no es visible en la cámara', 'warning');
+        return;
+    }
+    cvState.targetY = cvState.lastY;
+    cvState.repState = 'below';
+    showToast('Objetivo fijado', 'Sube el punto por encima de la línea amarilla para contar repeticiones', 'success');
+}
+
+function setTargetFromClick(e) {
+    if (!cvState.tracking) return;
+    const canvas = document.getElementById('cvCanvas');
+    const rect = canvas.getBoundingClientRect();
+    cvState.targetY = (e.clientY - rect.top) / rect.height;
+    cvState.repState = 'below';
+    showToast('Objetivo fijado', 'Sube el punto por encima de la línea amarilla para contar', 'success');
+}
+
+function resetReps() {
+    cvState.repCount = 0;
+    cvState.repState = 'below';
+    cvState.targetY = null;
+    updateRepDisplay();
+
+    const bar = document.getElementById('repsProgressBar');
+    if (bar) bar.classList.add('d-none');
+    const fill = document.getElementById('repsProgressFill');
+    if (fill) { fill.style.width = '0%'; fill.className = 'progress-bar bg-info'; }
+    const goal = document.getElementById('repsGoalDisplay');
+    const targetReps = parseInt(document.getElementById('targetReps')?.value || '0');
+    if (goal && targetReps > 0) goal.textContent = `0/${targetReps}`;
+}
+
+function updateRepDisplay() {
+    const el = document.getElementById('repCount');
+    if (el) el.textContent = cvState.repCount;
+}
+
+function flashRepCounter() {
+    const el = document.getElementById('repCount');
+    if (!el) return;
+    el.classList.remove('rep-flash');
+    void el.offsetWidth; // reflow para reiniciar animación
+    el.classList.add('rep-flash');
+    setTimeout(() => el.classList.remove('rep-flash'), 400);
 }
 
 // Exponer funciones globales
 window.eliminarPersona = eliminarPersona;
 window.verSesion = verSesion;
+window.exportarSesionCSV = exportarSesionCSV;

@@ -15,9 +15,13 @@ public:
 
     // Calibration methods
     void startCalibration();
+    void cancelCalibration();
     bool isCalibrating() const { return _isCalibrating; }
     bool isCalibrated() const { return _calibrated; }
     std::string getCalibrationStatus();
+
+    // Devuelve el valor actual del ADC normalizado (0-1) si está calibrado, raw si no
+    float getCurrentValue() const;
 
     // Returns a summary of the data or the raw data itself (JSON string)
     std::string getProcessedDataJSON();

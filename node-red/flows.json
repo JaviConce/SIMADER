@@ -1,31 +1,15 @@
 [
     {
-        "id": "flow_receiver",
-        "type": "tab",
-        "label": "1. MQTT Receiver",
-        "disabled": false,
-        "info": "Recibe y almacena datos de dispositivos MQTT",
-        "env": []
-    },
-    {
-        "id": "flow_commands",
-        "type": "tab",
-        "label": "2. Command Control",
-        "disabled": false,
-        "info": "Envía comandos a dispositivos",
-        "env": []
-    },
-    {
         "id": "flow_uibuilder",
         "type": "tab",
-        "label": "3. UIBuilder Dashboard",
+        "label": "1. UIBuilder Dashboard",
         "disabled": false,
         "info": "Dashboard con Bootstrap 5"
     },
     {
         "id": "flow_api",
         "type": "tab",
-        "label": "4. API REST",
+        "label": "2. API REST",
         "disabled": false,
         "info": "API REST para conectar SQLite con el Dashboard"
     },
@@ -151,16 +135,6 @@
         "name": "Live Status",
         "tab": "dashboard_tab",
         "order": 2,
-        "disp": true,
-        "width": 6,
-        "collapse": false
-    },
-    {
-        "id": "command_group",
-        "type": "ui_group",
-        "name": "Commands",
-        "tab": "dashboard_tab",
-        "order": 3,
         "disp": true,
         "width": 6,
         "collapse": false
@@ -522,258 +496,6 @@
         "className": ""
     },
     {
-        "id": "mqtt_in_all",
-        "type": "mqtt in",
-        "z": "flow_receiver",
-        "name": "Subscribe to esp32/#",
-        "topic": "esp32/#",
-        "qos": "2",
-        "datatype": "auto-detect",
-        "broker": "mqtt_broker_main",
-        "nl": false,
-        "rap": true,
-        "rh": 0,
-        "inputs": 0,
-        "x": 200,
-        "y": 100,
-        "wires": [
-            [
-                "parse_mqtt",
-                "mqtt_emg_receiver",
-                "register_sensor"
-            ]
-        ]
-    },
-    {
-        "id": "register_sensor",
-        "type": "function",
-        "z": "flow_receiver",
-        "name": "Register Sensor",
-        "func": "// Registrar sensores que envían mensajes MQTT\nlet payload = msg.payload;\nif (typeof payload === 'string') {\n    try {\n        payload = JSON.parse(payload);\n    } catch(e) {\n        return null;\n    }\n}\n\n// Extraer ID del sensor del mensaje o del topic\nconst sensorId = payload.sensorId || payload.deviceId || payload.id;\nconst sensorIp = payload.ip || null;\n\nif (!sensorId) return null;\n\n// Obtener lista de sensores\nlet sensores = global.get('sensores_conectados') || [];\n\n// Buscar si ya existe\nconst idx = sensores.findIndex(s => s.id === sensorId);\n\nconst sensorData = {\n    id: sensorId,\n    ip: sensorIp,\n    nombre: payload.nombre || sensorId,\n    estado: 'conectado',\n    lastSeen: new Date().toISOString(),\n    topic: msg.topic\n};\n\nif (idx >= 0) {\n    // Actualizar existente\n    sensores[idx] = { ...sensores[idx], ...sensorData };\n} else {\n    // Añadir nuevo\n    sensores.push(sensorData);\n}\n\n// Guardar\nglobal.set('sensores_conectados', sensores);\n\n// Notificar al dashboard si hay cambios\nmsg.topic = 'sensores';\nmsg.payload = sensores;\nreturn msg;",
-        "outputs": 1,
-        "timeout": "",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 480,
-        "y": 240,
-        "wires": [
-            [
-                "notify_sensores_uib"
-            ]
-        ]
-    },
-    {
-        "id": "notify_sensores_uib",
-        "type": "link out",
-        "z": "flow_receiver",
-        "name": "To UIBuilder Sensores",
-        "links": [
-            "sensores_link_in"
-        ],
-        "x": 635,
-        "y": 240,
-        "wires": []
-    },
-    {
-        "id": "debug_raw",
-        "type": "debug",
-        "z": "flow_receiver",
-        "name": "Raw MQTT",
-        "active": false,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "payload",
-        "targetType": "msg",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 500,
-        "y": 60,
-        "wires": []
-    },
-    {
-        "id": "parse_mqtt",
-        "type": "function",
-        "z": "flow_receiver",
-        "name": "Parse & Store",
-        "func": "let payload = msg.payload;\nif(typeof payload === 'string') {\n    try {\n        payload = JSON.parse(payload);\n    } catch(e) {}\n}\n\nconst msgData = {\n    topic: msg.topic,\n    payload: payload,\n    timestamp: new Date().toISOString(),\n    date: new Date(),\n    receivedAt: Date.now()\n};\n\ncontext.set('lastMessage_' + msg.topic, msgData);\n\nlet history = context.get('history_' + msg.topic) || [];\nhistory.push(msgData);\nif(history.length > 200) {\n    history = history.slice(-200);\n}\ncontext.set('history_' + msg.topic, history);\n\nmsg.payload = msgData;\nreturn msg;",
-        "outputs": 1,
-        "noerr": 0,
-        "x": 480,
-        "y": 120,
-        "wires": [
-            [
-                "to_dashboard"
-            ]
-        ]
-    },
-    {
-        "id": "to_dashboard",
-        "type": "link out",
-        "z": "flow_receiver",
-        "name": "To Dashboard",
-        "links": [],
-        "x": 605,
-        "y": 120,
-        "wires": []
-    },
-    {
-        "id": "mqtt_emg_receiver",
-        "type": "function",
-        "z": "flow_receiver",
-        "name": "Process EMG Data",
-        "func": "// Solo procesar datos de esp32/emg_data\nif (msg.topic !== 'esp32/emg_data') {\n    return null;\n}\n\nconst activeSession = flow.get('activeSession');\nif (!activeSession) {\n    return null;\n}\n\nlet data;\ntry {\n    data = typeof msg.payload === 'string' ? JSON.parse(msg.payload) : msg.payload;\n} catch(e) {\n    return null;\n}\n\nif (data.emg === undefined) {\n    return null;\n}\n\n// Actualizar estadísticas en memoria\nlet count = flow.get('emgCount') || 0;\nlet sum = flow.get('emgSum') || 0;\nlet max = flow.get('emgMax') || 0;\nlet min = flow.get('emgMin') || 999;\n\ncount++;\nsum += data.emg;\nmax = Math.max(max, data.emg);\nmin = Math.min(min, data.emg);\n\nflow.set('emgCount', count);\nflow.set('emgSum', sum);\nflow.set('emgMax', max);\nflow.set('emgMin', min);\n\n// Mensaje para actualizar stats UI\nmsg.stats = {\n    count: count,\n    average: sum / count,\n    max: max,\n    min: min,\n    lastValue: data.emg\n};\n\n// Preparar para guardar en SQLite\nmsg.params = {\n    $sesion_id: activeSession.id,\n    $emg_value: data.emg,\n    $raw_value: data.raw || null,\n    $voltage: data.v || null,\n    $timestamp_device: data.ts || null\n};\n\nreturn msg;",
-        "outputs": 1,
-        "timeout": "",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 510,
-        "y": 180,
-        "wires": [
-            [
-                "save_emg_sqlite",
-                "update_stats_ui"
-            ]
-        ]
-    },
-    {
-        "id": "save_emg_sqlite",
-        "type": "sqlite",
-        "z": "flow_receiver",
-        "mydb": "sqlite_db",
-        "sqlquery": "fixed",
-        "sql": "INSERT INTO datos_emg (sesion_id, emg_value, raw_value, voltage, timestamp_device) VALUES ($sesion_id, $emg_value, $raw_value, $voltage, $timestamp_device)",
-        "name": "Save EMG Data",
-        "x": 800,
-        "y": 160,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "update_stats_ui",
-        "type": "link out",
-        "z": "flow_receiver",
-        "name": "To Stats UI",
-        "links": [],
-        "x": 735,
-        "y": 220,
-        "wires": []
-    },
-    {
-        "id": "inject_test_command",
-        "type": "inject",
-        "z": "flow_commands",
-        "name": "Test: Send CheckStatus",
-        "props": [
-            {
-                "p": "payload"
-            }
-        ],
-        "repeat": "",
-        "crontab": "",
-        "once": false,
-        "onceDelay": 0.1,
-        "topic": "",
-        "payload": "{\"ip\":\"192.168.4.100\",\"command\":\"Check\"}",
-        "payloadType": "json",
-        "x": 150,
-        "y": 100,
-        "wires": [
-            [
-                "build_command_url"
-            ]
-        ]
-    },
-    {
-        "id": "build_command_url",
-        "type": "function",
-        "z": "flow_commands",
-        "name": "Build URL",
-        "func": "const ip = msg.payload.ip || \"192.168.4.100\";\nconst cmd = msg.payload.command || \"Check\";\n\nmsg.url = `http://192.168.4.1/send?ip=${ip}&cmd=${cmd}`;\nmsg.payload = {\n    ip: ip,\n    command: cmd,\n    url: msg.url,\n    timestamp: new Date().toISOString()\n};\n\nreturn msg;",
-        "outputs": 1,
-        "noerr": 0,
-        "x": 350,
-        "y": 100,
-        "wires": [
-            [
-                "send_command"
-            ]
-        ]
-    },
-    {
-        "id": "send_command",
-        "type": "http request",
-        "z": "flow_commands",
-        "name": "HTTP GET Send",
-        "method": "GET",
-        "ret": "txt",
-        "paytoqs": "ignore",
-        "url": "{{{url}}}",
-        "tls": "",
-        "persist": false,
-        "proxy": "",
-        "authType": "",
-        "x": 520,
-        "y": 100,
-        "wires": [
-            [
-                "handle_response"
-            ]
-        ]
-    },
-    {
-        "id": "handle_response",
-        "type": "function",
-        "z": "flow_commands",
-        "name": "Handle Response",
-        "func": "const response = {\n    status: msg.statusCode === 200 ? 'SUCCESS' : 'ERROR',\n    statusCode: msg.statusCode,\n    response: msg.payload,\n    timestamp: new Date().toISOString()\n};\n\nmsg.payload = response;\nreturn msg;",
-        "outputs": 1,
-        "noerr": 0,
-        "x": 730,
-        "y": 100,
-        "wires": [
-            [
-                "command_status_ui"
-            ]
-        ]
-    },
-    {
-        "id": "debug_response",
-        "type": "debug",
-        "z": "flow_commands",
-        "name": "Response Debug",
-        "active": false,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "payload",
-        "targetType": "msg",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 850,
-        "y": 40,
-        "wires": []
-    },
-    {
-        "id": "command_status_ui",
-        "type": "ui_template",
-        "z": "flow_commands",
-        "group": "command_group",
-        "name": "Command Status",
-        "order": 1,
-        "format": "<div style=\"padding: 15px; font-family: Arial, sans-serif;\">\n    <h3>⚙️ Estado del Comando</h3>\n    <div style=\"padding: 10px; border-radius: 5px;\" ng-class=\"{'background-color': msg.payload.status === 'SUCCESS' ? '#c8e6c9' : '#ffcdd2'};\">\n        <p style=\"margin: 5px 0;\"><strong>Estado:</strong> \n            <span style=\"color: {{msg.payload.status === 'SUCCESS' ? '#2e7d32' : '#c62828'}};\">{{msg.payload.status}}</span>\n        </p>\n        <p style=\"margin: 5px 0;\"><strong>Código HTTP:</strong> {{msg.payload.statusCode}}</p>\n        <p style=\"margin: 5px 0;\"><strong>Respuesta:</strong> {{msg.payload.response}}</p>\n        <p style=\"margin: 5px 0; font-size: 11px; color: #999;\">{{msg.payload.timestamp}}</p>\n    </div>\n</div>",
-        "x": 850,
-        "y": 160,
-        "wires": [
-            []
-        ]
-    },
-    {
         "id": "uib_handler",
         "type": "function",
         "z": "flow_uibuilder",
@@ -863,8 +585,8 @@
         "sqlquery": "fixed",
         "sql": "SELECT s.*, e.total_muestras, e.emg_promedio, e.emg_max, e.emg_min FROM sesiones s LEFT JOIN estadisticas_sesion e ON s.id = e.sesion_id WHERE s.estado = 'finalizada' ORDER BY s.fecha_inicio DESC LIMIT 50",
         "name": "Get Sesiones",
-        "x": 370,
-        "y": 140,
+        "x": 350,
+        "y": 120,
         "wires": [
             [
                 "format_sesiones"
@@ -1004,7 +726,7 @@
         "type": "function",
         "z": "flow_uibuilder",
         "name": "Prepare Stats",
-        "func": "const sessionData = flow.get('lastSessionData');\n\nif (!sessionData) {\n    node.error('No session data found');\n    return null;\n}\n\n// Obtener el ID de la sesión recién insertada\nlet sessionId;\nif (msg.payload && Array.isArray(msg.payload) && msg.payload[0] && msg.payload[0].id) {\n    sessionId = msg.payload[0].id;\n} else {\n    node.error('❌ No se pudo obtener el ID de la sesión insertada');\n    return null;\n}\n\n// Calcular duración en segundos\nconst inicio = new Date(sessionData.fecha_inicio);\nconst fin = new Date(sessionData.fecha_fin);\nconst duracion = Math.floor((fin - inicio) / 1000);\n\nmsg.params = [\n    sessionId,\n    sessionData.total_muestras || 0,\n    sessionData.emg_promedio || 0,\n    sessionData.emg_max || 0,\n    sessionData.emg_min || 0,\n    duracion\n];\n\n// Guardar para usar en el siguiente nodo\nmsg.sessionId = sessionId;\nmsg.sessionData = sessionData;\n\nreturn msg;",
+        "func": "const sessionData = flow.get('lastSessionData');\n\nif (!sessionData) {\n    node.error('No session data found');\n    return null;\n}\n\n// Obtener el ID de la sesión recién insertada\nlet sessionId;\nif (msg.payload && Array.isArray(msg.payload) && msg.payload[0] && msg.payload[0].id) {\n    sessionId = msg.payload[0].id;\n} else {\n    node.error('❌ No se pudo obtener el ID de la sesión insertada');\n    return null;\n}\n\n// Calcular duración en segundos\nconst inicio = new Date(sessionData.fecha_inicio);\nconst fin = new Date(sessionData.fecha_fin);\nconst duracion = Math.floor((fin - inicio) / 1000);\n\nmsg.params = [\n    sessionId,\n    sessionData.total_muestras || 0,\n    sessionData.emg_promedio || 0,\n    sessionData.emg_max || 0,\n    sessionData.emg_min || 0,\n    duracion\n];\n\nmsg.sessionId = sessionId;\n\nreturn msg;",
         "outputs": 1,
         "x": 1460,
         "y": 180,
@@ -1036,25 +758,10 @@
         "type": "function",
         "z": "flow_uibuilder",
         "name": "Prepare EMG Data",
-        "func": "const sessionId = msg.sessionId;\nconst sessionData = msg.sessionData;\n\nif (!sessionData.datos || sessionData.datos.length === 0) {\n    node.warn('No EMG data to save');\n    return null;\n}\n\n// Preparar datos EMG para inserción por lotes\nconst datos = sessionData.datos.map((emg, index) => {\n    return {\n        sesion_id: sessionId,\n        emg_value: emg,\n        raw_value: emg,\n        voltage: null,\n        timestamp_device: null\n    };\n});\n\nmsg.datos = datos;\nmsg.sessionId = sessionId;\n\nreturn msg;",
+        "func": "const sessionId = msg.sessionId;\nconst emgData = flow.get('emgData') || [];\n\nif (emgData.length === 0) {\n    node.warn('No EMG data to save');\n    return null;\n}\n\nconst msgs = emgData.map(d => ({\n    params: [sessionId, d.emg, d.raw || null, d.voltaje || null]\n}));\n\nreturn [msgs];",
         "outputs": 1,
-        "x": 1660,
-        "y": 180,
-        "wires": [
-            [
-                "save_emg_data"
-            ]
-        ]
-    },
-    {
-        "id": "save_emg_data",
-        "type": "function",
-        "z": "flow_uibuilder",
-        "name": "Insert EMG Data (Loop)",
-        "func": "const datos = msg.datos;\nconst sessionId = msg.sessionId;\n\nif (!datos || datos.length === 0) {\n    node.warn('⚠️ No hay datos EMG para guardar');\n    return null;\n}\n\n// Crear un mensaje por cada dato EMG\nconst msgs = [];\n\nfor (const dato of datos) {\n    msgs.push({\n        params: [\n            dato.sesion_id,\n            dato.emg_value,\n            dato.raw_value,\n            dato.voltage,\n            dato.timestamp_device\n        ],\n        sessionId: sessionId,\n        totalDatos: datos.length\n    });\n}\n\nreturn [msgs];",
-        "outputs": 1,
-        "x": 1900,
-        "y": 180,
+        "x": 1680,
+        "y": 240,
         "wires": [
             [
                 "insert_single_emg"
@@ -1067,10 +774,10 @@
         "z": "flow_uibuilder",
         "mydb": "sqlite_db",
         "sqlquery": "prepared",
-        "sql": "INSERT INTO datos_emg (sesion_id, emg_value, raw_value, voltage, timestamp_device) VALUES (?, ?, ?, ?, ?)",
+        "sql": "INSERT INTO datos_emg (sesion_id, valor_emg, valor_crudo, voltaje) VALUES (?, ?, ?, ?)",
         "name": "Insert Single EMG",
-        "x": 2150,
-        "y": 180,
+        "x": 1900,
+        "y": 240,
         "wires": [
             []
         ]
@@ -1138,7 +845,7 @@
         "z": "flow_uibuilder",
         "name": "MQTT Commands",
         "topic": "",
-        "qos": "",
+        "qos": "1",
         "retain": "",
         "broker": "mqtt_broker_main",
         "x": 990,
@@ -1168,26 +875,10 @@
         "type": "function",
         "z": "flow_uibuilder",
         "name": "Process EMG",
-        "func": "const activeSession = flow.get('activeSession');\nif (!activeSession) return null;\n\nconst data = msg.payload;\nif (!data || data.emg === undefined) return null;\n\n// Guardar en array temporal\nlet emgData = flow.get('emgData') || [];\nemgData.push(data.emg);\nflow.set('emgData', emgData);\n\n// Enviar a UI\nmsg.topic = 'emg_data';\nmsg.payload = data.emg;\n\nreturn msg;",
+        "func": "const activeSession = flow.get('activeSession');\nif (!activeSession) return null;\n\nconst data = msg.payload;\nif (!data || data.emg === undefined) return null;\n\n// Guardar en array temporal\nlet emgData = flow.get('emgData') || [];\nemgData.push({ emg: data.emg, raw: data.raw || null, voltaje: data.voltaje || null });\nflow.set('emgData', emgData);\n\n// Enviar a UI\nmsg.topic = 'emg_data';\nmsg.payload = data.emg;\n\nreturn msg;",
         "outputs": 1,
         "x": 370,
         "y": 300,
-        "wires": [
-            [
-                "uib_simader"
-            ]
-        ]
-    },
-    {
-        "id": "sensores_link_in",
-        "type": "link in",
-        "z": "flow_uibuilder",
-        "name": "Sensores Update",
-        "links": [
-            "notify_sensores_uib"
-        ],
-        "x": 165,
-        "y": 380,
         "wires": [
             [
                 "uib_simader"
@@ -1200,7 +891,7 @@
         "z": "flow_uibuilder",
         "name": "ESP32 Clients",
         "topic": "esp32/clients",
-        "qos": "0",
+        "qos": "1",
         "datatype": "json",
         "broker": "mqtt_broker_main",
         "inputs": 0,
@@ -1233,7 +924,7 @@
         "z": "flow_uibuilder",
         "name": "ESP32 Responses",
         "topic": "esp32/responses",
-        "qos": "0",
+        "qos": "1",
         "datatype": "auto-detect",
         "broker": "mqtt_broker_main",
         "inputs": 0,
@@ -1423,7 +1114,7 @@
         "z": "flow_api",
         "mydb": "sqlite_db",
         "sqlquery": "prepared",
-        "sql": "SELECT emg_value, raw_value, voltage, timestamp_device, timestamp_server FROM datos_emg WHERE sesion_id = ? ORDER BY id",
+        "sql": "SELECT valor_emg, valor_crudo, voltaje, timestamp_servidor FROM datos_emg WHERE sesion_id = ? ORDER BY id",
         "name": "Query Datos EMG",
         "x": 600,
         "y": 240,
@@ -1438,7 +1129,7 @@
         "type": "function",
         "z": "flow_api",
         "name": "Format Response",
-        "func": "// Extraer solo los valores EMG para el gráfico\nconst emgValues = msg.payload.map(d => d.emg_value);\nconst fullData = msg.payload;\n\nmsg.payload = {\n    sesion_id: msg.req.params.id,\n    total: fullData.length,\n    emg_values: emgValues,\n    datos: fullData\n};\nreturn msg;",
+        "func": "// Extraer solo los valores EMG para el gráfico\nconst emgValues = msg.payload.map(d => d.valor_emg);\nconst fullData = msg.payload;\n\nmsg.payload = {\n    sesion_id: msg.req.params.id,\n    total: fullData.length,\n    emg_values: emgValues,\n    datos: fullData\n};\nreturn msg;",
         "outputs": 1,
         "x": 790,
         "y": 240,
@@ -1510,110 +1201,13 @@
         "wires": []
     },
     {
-        "id": "api_get_sensores",
-        "type": "http in",
-        "z": "flow_api",
-        "name": "GET /api/sensores",
-        "url": "/api/sensores",
-        "method": "get",
-        "upload": false,
-        "swaggerDoc": "",
-        "x": 160,
-        "y": 400,
-        "wires": [
-            [
-                "get_sensores_list"
-            ]
-        ]
-    },
-    {
-        "id": "get_sensores_list",
-        "type": "function",
-        "z": "flow_api",
-        "name": "Get Sensores List",
-        "func": "// Obtener sensores del contexto global o devolver lista por defecto\nlet sensores = global.get('sensores_conectados') || [];\n\n// Si no hay sensores registrados, devolver lista de ejemplo\nif (sensores.length === 0) {\n    sensores = [\n        { id: 'ESP32_001', ip: '192.168.4.100', nombre: 'Sensor EMG 1', estado: 'desconocido' },\n        { id: 'ESP32_002', ip: '192.168.4.101', nombre: 'Sensor EMG 2', estado: 'desconocido' }\n    ];\n}\n\nmsg.payload = sensores;\nreturn msg;",
-        "outputs": 1,
-        "timeout": "",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 390,
-        "y": 400,
-        "wires": [
-            [
-                "response_sensores"
-            ]
-        ]
-    },
-    {
-        "id": "response_sensores",
-        "type": "http response",
-        "z": "flow_api",
-        "name": "Response",
-        "statusCode": "200",
-        "headers": {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*"
-        },
-        "x": 590,
-        "y": 400,
-        "wires": []
-    },
-    {
         "id": "comment_api",
         "type": "comment",
         "z": "flow_api",
         "name": "📡 API REST - Endpoints disponibles",
-        "info": "## Endpoints:\n\n- GET /api/personas - Lista de personas\n- GET /api/sesiones - Sesiones con estadísticas\n- GET /api/sesion/:id/datos - Datos EMG de una sesión\n- GET /api/estadisticas - Resumen por persona\n- GET /api/sensores - Lista de sensores conectados\n\n## Ejemplo:\nhttp://localhost:1880/api/personas",
+        "info": "## Endpoints:\n\n- GET /api/personas - Lista de personas\n- GET /api/sesiones - Sesiones con estadísticas\n- GET /api/sesion/:id/datos - Datos EMG de una sesión\n- GET /api/estadisticas - Resumen por persona\n\n## Ejemplo:\nhttp://localhost:1880/api/personas",
         "x": 210,
         "y": 580,
-        "wires": []
-    },
-    {
-        "id": "test_api_emg",
-        "type": "http in",
-        "z": "flow_api",
-        "name": "TEST /api/test-emg",
-        "url": "/api/test-emg",
-        "method": "get",
-        "upload": false,
-        "swaggerDoc": "",
-        "x": 180,
-        "y": 500,
-        "wires": [
-            [
-                "test_query_emg"
-            ]
-        ]
-    },
-    {
-        "id": "test_query_emg",
-        "type": "sqlite",
-        "z": "flow_api",
-        "mydb": "sqlite_db",
-        "sqlquery": "fixed",
-        "sql": "SELECT emg_value FROM datos_emg WHERE sesion_id = 1 LIMIT 10",
-        "name": "Test Query",
-        "x": 400,
-        "y": 500,
-        "wires": [
-            [
-                "test_response_emg"
-            ]
-        ]
-    },
-    {
-        "id": "test_response_emg",
-        "type": "http response",
-        "z": "flow_api",
-        "name": "Test Response",
-        "statusCode": "200",
-        "headers": {
-            "Content-Type": "application/json"
-        },
-        "x": 600,
-        "y": 500,
         "wires": []
     }
 ]
