@@ -67,10 +67,14 @@ int MqttManager::connectToMQTTBroker(std::string mqttServer, int mqttPort) {
     mqttClient.setServer(mqttServer.c_str(), mqttPort);
     mqttClient.setCallback(MqttManager::mqttCallback);
 
-    Serial.printf("[MQTT_MANAGER][INFO] Connecting to MQTT Broker at %s:%i ...", mqttServer.c_str(), mqttPort);
+    String mac = WiFi.macAddress();
+    mac.replace(":", "");
+    std::string clientId = std::string(MQTT_CLIENT_ID) + "-" + mac.c_str();
+
+    Serial.printf("[MQTT_MANAGER][INFO] Connecting to MQTT Broker at %s:%i (clientId: %s) ...", mqttServer.c_str(), mqttPort, clientId.c_str());
     int tries = 0;
     while (!mqttClient.connected() && tries < MAX_MQTT_CONNECTION_ATTEMPTS) {
-        if (mqttClient.connect(MQTT_CLIENT_ID)) {
+        if (mqttClient.connect(clientId.c_str())) {
             Serial.println("\n[MQTT_MANAGER][INFO] Connected to the MQTT Broker.");
             mqttClient.subscribe("esp32/commands", 1);
             Serial.println("[MQTT_MANAGER][INFO] Subscribed to esp32/commands");
